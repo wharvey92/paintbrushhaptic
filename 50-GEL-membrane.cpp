@@ -796,28 +796,6 @@ void updateHaptics(void)
 
         moveFixedNodesToCursor(pos);
         
-        // compute reaction forces
-//        cVector3d force(0.0, 0.0, 0.0);
-//        for (int y=0; y<numYNodes; y++)
-//        {
-//            for (int x=0; x<10; x++)
-//            {
-//               cVector3d nodePos = nodes[x][y]->m_pos;
-//               cVector3d f = computeForce(pos, deviceRadius, nodePos, radius, stiffness);
-//               cVector3d tmpfrc = -1.0 * f;
-//               nodes[x][y]->setExternalForce(tmpfrc);
-//               force.add(f);
-//            }
-//        }
-//
-//        // integrate dynamics
-//        defWorld->updateDynamics(time);
-//
-//        // scale force
-//        force.mul(deviceForceScale);
-//
-//        // send forces to haptic device
-        
         
         cVector3d force(0.0, 0.0, 0.0);
         for (int y=0; y<numYNodes; y++)
@@ -827,16 +805,13 @@ void updateHaptics(void)
                 cVector3d nodePos = nodes[x][y]->m_pos;
                 cVector3d f = computeForceOnPalette(nodePos, radius, stiffness);
                 cVector3d tmpfrc = -1.0 * f;
+                
+                force += tmpfrc * ((double) 3 * x * 1.0 / pow(10, 1));
+                
                 nodes[x][y]->setExternalForce(tmpfrc);
-                
-                if (x == 9 && y == 0) {
-                    cout << "Force is : " << tmpfrc << endl;
-                }
-                
             }
         }
-        
-        
+
         //Integrate dynamics
         defWorld->updateDynamics(time);
         
