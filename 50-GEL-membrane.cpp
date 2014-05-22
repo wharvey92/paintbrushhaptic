@@ -91,6 +91,12 @@ cDirectionalLight *light;
 // a haptic device handler
 cHapticDeviceHandler* handler;
 
+// a mesh object to model a piece of canvas
+cMesh* canvas;
+
+// copy of blank canvas texture
+cImagePtr canvasOriginal;
+
 // a haptic device
 shared_ptr<cGenericHapticDevice> hapticDevice;
 
@@ -131,8 +137,10 @@ string resourceRoot;
 // GEL
 //---------------------------------------------------------------------------
 
-int numYNodes = 6;
-cGELSkeletonNode* nodes[10][6];
+int numYNodes = 10;
+cGELSkeletonNode* nodes[10][10];
+int numFixedRows = 3;
+double canvasX;
 
 
 // deformable world
@@ -352,6 +360,63 @@ int main(int argc, char* argv[])
     stiffness = 100;
 
 
+    /////////////////////////////////////////////////////////////////////////
+    // CANVAS:
+    ////////////////////////////////////////////////////////////////////////
+    
+    // create a mesh
+    canvas = new cMesh();
+    
+    // create a plane
+    cCreatePlane(canvas, 2.3, 2.3);
+    
+    // create collision detector
+    canvas->createBruteForceCollisionDetector();
+    
+    // add object to world
+    world->addChild(canvas);
+    
+    // set the position of the object
+    canvasX = -0.95;
+    
+    canvas->setLocalPos(canvasX, 0, 0.0);
+    canvas->rotateAboutGlobalAxisRad(cVector3d(0,1,0), cDegToRad(90));
+    canvas->rotateAboutGlobalAxisRad(cVector3d(1,0,0), cDegToRad(90));
+    
+    // set graphic properties
+    canvas->m_texture = cTexture2d::create();
+    bool fileload = canvas->m_texture->loadFromFile("/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/canvas.jpg");
+
+    if (!fileload)
+    {
+#if defined(_MSVC)
+        
+        fileload = canvas->m_texture->loadFromFile("../../../bin/resources/images/canvas.jpg");
+#endif
+    }
+    if (!fileload)
+    {
+        cout << "Error - Texture image failed to load correctly." << endl;
+        close();
+        return (-1);
+    }
+    
+    // create a copy of canvas so that we can clear page when requested
+    canvasOriginal = canvas->m_texture->m_image->copy();
+    
+    // we disable lighting properties for canvas
+    canvas->setUseMaterial(false);
+    
+    // enable texture mapping
+    canvas->setUseTexture(true);
+    
+    // set haptic properties
+    //canvas->m_material->setStiffness(0.5 * maxStiffness);
+    canvas->m_material->setStaticFriction(0.20);
+    canvas->m_material->setDynamicFriction(0.15);
+    canvas->m_material->setHapticTriangleSides(true, false);
+    
+    
     //-----------------------------------------------------------------------
     // COMPOSE THE VIRTUAL SCENE
     //-----------------------------------------------------------------------
@@ -365,8 +430,7 @@ int main(int argc, char* argv[])
     defWorld->m_gelMeshes.push_front(defObject);
 
 	// load model
-    bool fileload = true;
-    //fileload = defObject->loadFromFile(RESOURCE_PATH("resources/models/box/box.obj"));
+    fileload = defObject->loadFromFile(RESOURCE_PATH("resources/models/box/box.obj"));
     if (!fileload)
     {
         #if defined(_MSVC)
@@ -419,7 +483,7 @@ int main(int argc, char* argv[])
 
     // set default properties for skeleton nodes
     cGELSkeletonNode::s_default_radius        = 0.05;  // [m]
-    cGELSkeletonNode::s_default_kDampingPos   = 2.5;
+    cGELSkeletonNode::s_default_kDampingPos   = 5.5;
     cGELSkeletonNode::s_default_kDampingRot   = 0.6;
     cGELSkeletonNode::s_default_mass          = 0.002; // [kg]
     cGELSkeletonNode::s_default_showFrame     = true;
@@ -439,7 +503,7 @@ int main(int argc, char* argv[])
             cGELSkeletonNode* newNode = new cGELSkeletonNode();
             nodes[x][y] = newNode;
             defObject->m_nodes.push_front(newNode);
-            newNode->m_pos.set( (-0.45 + 0.1*(double)x), (-0.43 + 0.1*(double)y), 0.0);
+            newNode->m_pos.set( (0.45 - 0.1*(double)x), (0.43 - 0.1*(double)y), 0.0);
         }
     }
 
@@ -451,10 +515,16 @@ int main(int argc, char* argv[])
     
     
     for (int y = 0; y < numYNodes; y++) {
-        for (int x = 0; x < 3; x++) {
+        for (int x = 0; x < numFixedRows; x++) {
             nodes[x][y]->m_fixed = true;
         }
     }
+    
+//    for (int y = numYNodes/2 - 2; y < numYNodes/2 + 2; y++) {
+//        for (int x = numFixedRows; x < numFixedRows + 3; x++) {
+//            nodes[x][y]->m_fixed = true;
+//        }
+//    }
     
     
     //nodes[9][0]->m_fixed = true;
@@ -650,6 +720,49 @@ void updateGraphics(void)
 
 //---------------------------------------------------------------------------
 
+void moveFixedNodesToCursor(const cVector3d pos) {
+    for (int y = 0; y < numYNodes; y++) {
+        for (int x = 0; x < 10; x++) {
+            if (nodes[x][y]->m_fixed) {
+            
+                cVector3d offset(-0.1*(double)x, 0.42 - 0.1*(double)y,0);
+                nodes[x][y]->m_pos = pos + offset;
+            }
+        }
+    }
+}
+
+cVector3d computeForceOnPalette(const cVector3d& a_spherePos,
+                                double a_radius,
+                                double a_stiffness) {
+    // compute the reaction forces between the tool and the ith sphere.
+    cVector3d force;
+    force.zero();
+    
+    double xDist = abs(a_spherePos.x() - canvasX);
+    
+    // check if both objects are intersecting
+    if (xDist < 0.0000001)
+    {
+        return (force);
+    }
+
+    if (xDist > (a_radius))
+    {
+        return (force);
+    }
+    
+    // compute penetration distance between tool and surface of sphere
+    double penetrationDistance = a_radius - xDist;
+    cVector3d forceDirection = cVector3d(-1, 0, 0);
+    force = cMul( penetrationDistance * a_stiffness, forceDirection);
+    
+    // return result
+    
+    return (force);
+    
+}
+
 void updateHaptics(void)
 {
     // initialize frequency counter
@@ -681,29 +794,56 @@ void updateHaptics(void)
         // clear all external forces
         defWorld->clearExternalForces();
 
+        moveFixedNodesToCursor(pos);
+        
         // compute reaction forces
+//        cVector3d force(0.0, 0.0, 0.0);
+//        for (int y=0; y<numYNodes; y++)
+//        {
+//            for (int x=0; x<10; x++)
+//            {
+//               cVector3d nodePos = nodes[x][y]->m_pos;
+//               cVector3d f = computeForce(pos, deviceRadius, nodePos, radius, stiffness);
+//               cVector3d tmpfrc = -1.0 * f;
+//               nodes[x][y]->setExternalForce(tmpfrc);
+//               force.add(f);
+//            }
+//        }
+//
+//        // integrate dynamics
+//        defWorld->updateDynamics(time);
+//
+//        // scale force
+//        force.mul(deviceForceScale);
+//
+//        // send forces to haptic device
+        
+        
         cVector3d force(0.0, 0.0, 0.0);
         for (int y=0; y<numYNodes; y++)
         {
             for (int x=0; x<10; x++)
             {
-               cVector3d nodePos = nodes[x][y]->m_pos;
-               cVector3d f = computeForce(pos, deviceRadius, nodePos, radius, stiffness);
-               cVector3d tmpfrc = -1.0 * f;
-               nodes[x][y]->setExternalForce(tmpfrc);
-               force.add(f);
+                cVector3d nodePos = nodes[x][y]->m_pos;
+                cVector3d f = computeForceOnPalette(nodePos, radius, stiffness);
+                cVector3d tmpfrc = -1.0 * f;
+                nodes[x][y]->setExternalForce(tmpfrc);
+                
+                if (x == 9 && y == 0) {
+                    cout << "Force is : " << tmpfrc << endl;
+                }
+                
             }
         }
-
-        // integrate dynamics
+        
+        
+        //Integrate dynamics
         defWorld->updateDynamics(time);
-
-        // scale force
+        
+        //Send force back to haptic device
         force.mul(deviceForceScale);
-
-        // send forces to haptic device
         hapticDevice->setForce(force);
-
+        
         // update frequency counter
         frequencyCounter.signal(1);
     }
@@ -714,36 +854,39 @@ void updateHaptics(void)
 
 //---------------------------------------------------------------------------
 
-cVector3d computeForce(const cVector3d& a_cursor,
-                       double a_cursorRadius,
-                       const cVector3d& a_spherePos,
-                       double a_radius,
-                       double a_stiffness)
-{
 
-    // compute the reaction forces between the tool and the ith sphere.
-    cVector3d force;
-    force.zero();
-    cVector3d vSphereCursor = a_cursor - a_spherePos;
 
-    // check if both objects are intersecting
-    if (vSphereCursor.length() < 0.0000001)
-    {
-        return (force);
-    }
 
-    if (vSphereCursor.length() > (a_cursorRadius + a_radius))
-    {
-        return (force);
-    }
-
-    // compute penetration distance between tool and surface of sphere
-    double penetrationDistance = (a_cursorRadius + a_radius) - vSphereCursor.length();
-    cVector3d forceDirection = cNormalize(vSphereCursor);
-    force = cMul( penetrationDistance * a_stiffness, forceDirection);
-
-    // return result
-    return (force);
-}
+//cVector3d computeForce(const cVector3d& a_cursor,
+//                       double a_cursorRadius,
+//                       const cVector3d& a_spherePos,
+//                       double a_radius,
+//                       double a_stiffness)
+//{
+//
+//    // compute the reaction forces between the tool and the ith sphere.
+//    cVector3d force;
+//    force.zero();
+//    cVector3d vSphereCursor = a_cursor - a_spherePos;
+//
+//    // check if both objects are intersecting
+//    if (vSphereCursor.length() < 0.0000001)
+//    {
+//        return (force);
+//    }
+//
+//    if (vSphereCursor.length() > (a_cursorRadius + a_radius))
+//    {
+//        return (force);
+//    }
+//
+//    // compute penetration distance between tool and surface of sphere
+//    double penetrationDistance = (a_cursorRadius + a_radius) - vSphereCursor.length();
+//    cVector3d forceDirection = cNormalize(vSphereCursor);
+//    force = cMul( penetrationDistance * a_stiffness, forceDirection);
+//
+//    // return result
+//    return (force);
+//}
 
 //---------------------------------------------------------------------------
