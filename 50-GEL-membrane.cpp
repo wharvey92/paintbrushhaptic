@@ -44,6 +44,10 @@
 //------------------------------------------------------------------------------
 #include "chai3d.h"
 #include "GEL3D.h"
+#include "UtensilController.h"
+#include "WideBrushController.h"
+
+
 //------------------------------------------------------------------------------
 using namespace chai3d;
 using namespace std;
@@ -78,6 +82,9 @@ bool mirroredDisplay = false;
 //---------------------------------------------------------------------------
 // DECLARED VARIABLES
 //---------------------------------------------------------------------------
+
+double canvasSize = 2.3;
+UtensilController *utensilController;
 
 // a world that contains all objects of the virtual environment
 cWorld* world;
@@ -137,29 +144,12 @@ string resourceRoot;
 // GEL
 //---------------------------------------------------------------------------
 
-int numYNodes = 10;
-cGELSkeletonNode* nodes[10][10];
-int numFixedRows = 3;
 double canvasX;
 
-
-// deformable world
-cGELWorld* defWorld;
-
-// object mesh
-cGELMesh* defObject;
-
-// dynamic nodes
 
 // haptic device model
 cShapeSphere* device;
 double deviceRadius;
-
-// radius of the dynamic model sphere (GEM)
-double radius;
-
-// stiffness properties between the haptic device tool and the model (GEM)
-double stiffness;
 
 
 //---------------------------------------------------------------------------
@@ -356,9 +346,6 @@ int main(int argc, char* argv[])
     device->m_material->setWhite();
     device->m_material->setShininess(100);
 
-    // interaction stiffness between tool and deformable model 
-    stiffness = 100;
-
 
     /////////////////////////////////////////////////////////////////////////
     // CANVAS:
@@ -368,7 +355,7 @@ int main(int argc, char* argv[])
     canvas = new cMesh();
     
     // create a plane
-    cCreatePlane(canvas, 2.3, 2.3);
+    cCreatePlane(canvas, canvasSize, canvasSize);
     
     // create collision detector
     canvas->createBruteForceCollisionDetector();
@@ -416,149 +403,10 @@ int main(int argc, char* argv[])
     canvas->m_material->setDynamicFriction(0.15);
     canvas->m_material->setHapticTriangleSides(true, false);
     
-    
-    //-----------------------------------------------------------------------
-    // COMPOSE THE VIRTUAL SCENE
-    //-----------------------------------------------------------------------
 
-    // create a world which supports deformable object
-    defWorld = new cGELWorld();
-    world->addChild(defWorld);
-
-    // create a deformable mesh
-    defObject = new cGELMesh();
-    defWorld->m_gelMeshes.push_front(defObject);
-
-	// load model
-    fileload = defObject->loadFromFile(RESOURCE_PATH("resources/models/box/box.obj"));
-    if (!fileload)
-    {
-        #if defined(_MSVC)
-        fileload = defObject->loadFromFile("../../../bin/resources/models/box/box.obj");
-        #endif
-    }
-    if (!fileload)
-    {
-        cout << "Error - 3D Model failed to load correctly." << endl;
-        close();
-        return (-1);
-    }
-
-    // set some material color on the object
-    cMaterial mat;
-    mat.setBrownTan();
-    mat.setShininess(10);
-    defObject->setMaterial(mat, true);
-    
-
-    // let's create a some environment mapping
-    shared_ptr<cTexture2d> texture(new cTexture2d());
-    fileload = texture->loadFromFile(RESOURCE_PATH("resources/images/shadow.jpg"));
-    if (!fileload)
-    {
-        #if defined(_MSVC)
-        fileload = texture->loadFromFile("../../../bin/resources/images/shadow.jpg");
-        #endif
-    }
-    if (!fileload)
-    {
-         cout << "Error - Texture failed to load correctly." << endl;
-        close();
-        return (-1);
-    }
-
-    // enable environmental texturing
-    texture->setEnvironmentMode(GL_DECAL);
-    texture->setSphericalMappingEnabled(true);
-
-    // assign and enable texturing
-    //defObject->setTexture(texture, true);
-    //defObject->setUseTexture(true, true);
-
-    // set object to be transparent
-    defObject->setTransparencyLevel(0.98, true, true);
-    
-    // build dynamic vertices
-    defObject->buildVertices();
-
-    // set default properties for skeleton nodes
-    cGELSkeletonNode::s_default_radius        = 0.05;  // [m]
-    cGELSkeletonNode::s_default_kDampingPos   = 5.5;
-    cGELSkeletonNode::s_default_kDampingRot   = 0.6;
-    cGELSkeletonNode::s_default_mass          = 0.002; // [kg]
-    cGELSkeletonNode::s_default_showFrame     = true;
-    cGELSkeletonNode::s_default_color.setBlueCornflower();
-    cGELSkeletonNode::s_default_useGravity    = true;
-    cGELSkeletonNode::s_default_gravity.set(0.00, 0.00,-9.81);
-    radius = cGELSkeletonNode::s_default_radius;
-
-    // use internal skeleton as deformable model
-    defObject->m_useSkeletonModel = true;
-
-    // create an array of nodes
-    for (int y=0; y<numYNodes; y++)
-    {
-        for (int x=0; x<10; x++)
-        {
-            cGELSkeletonNode* newNode = new cGELSkeletonNode();
-            nodes[x][y] = newNode;
-            defObject->m_nodes.push_front(newNode);
-            newNode->m_pos.set( (0.45 - 0.1*(double)x), (0.43 - 0.1*(double)y), 0.0);
-        }
-    }
-
-    // set corner nodes as fixed
-//    nodes[0][0]->m_fixed = true;
-//    nodes[0][9]->m_fixed = true;
-//    nodes[1][0]->m_fixed = true;
-//    nodes[1][9]->m_fixed = true;
-    
-    
-    for (int y = 0; y < numYNodes; y++) {
-        for (int x = 0; x < numFixedRows; x++) {
-            nodes[x][y]->m_fixed = true;
-        }
-    }
-    
-//    for (int y = numYNodes/2 - 2; y < numYNodes/2 + 2; y++) {
-//        for (int x = numFixedRows; x < numFixedRows + 3; x++) {
-//            nodes[x][y]->m_fixed = true;
-//        }
-//    }
-    
-    
-    //nodes[9][0]->m_fixed = true;
-    //nodes[9][9]->m_fixed = true;
-    
-
-    // set default physical properties for links
-    cGELSkeletonLink::s_default_kSpringElongation = 15.0;  // [N/m]
-    cGELSkeletonLink::s_default_kSpringFlexion    = 0.5;   // [Nm/RAD] //0.5
-    cGELSkeletonLink::s_default_kSpringTorsion    = 0.4;   // [Nm/RAD]
-    cGELSkeletonLink::s_default_color.setBlueCornflower();
-
-    // create links between nodes
-    for (int y=0; y<numYNodes-1; y++)
-    {
-        for (int x=0; x<9; x++)
-        {
-            cGELSkeletonLink* newLinkX0 = new cGELSkeletonLink(nodes[x+0][y+0], nodes[x+1][y+0]);
-            cGELSkeletonLink* newLinkX1 = new cGELSkeletonLink(nodes[x+0][y+1], nodes[x+1][y+1]);
-            cGELSkeletonLink* newLinkY0 = new cGELSkeletonLink(nodes[x+0][y+0], nodes[x+0][y+1]);
-            cGELSkeletonLink* newLinkY1 = new cGELSkeletonLink(nodes[x+1][y+0], nodes[x+1][y+1]);
-            defObject->m_links.push_front(newLinkX0);
-            defObject->m_links.push_front(newLinkX1);
-            defObject->m_links.push_front(newLinkY0);
-            defObject->m_links.push_front(newLinkY1);
-        }
-    }
-
-    // connect skin (mesh) to skeleton (GEM)
-    defObject->connectVerticesToSkeleton(false);
-
-    // show/hide underlying dynamic skeleton model
-    defObject->m_showSkeletonModel = false;
-
+    WideBrushController *newController = new WideBrushController(world, canvas, resourceRoot, hapticDevice);
+    utensilController = newController;
+    utensilController->setCanvasSize(canvasSize);
 
     //--------------------------------------------------------------------------
     // WIDGETS
@@ -622,12 +470,6 @@ void keySelect(unsigned char key, int x, int y)
 
         // exit application
         exit(0);
-    }
-
-    // option s: show/hide skeleton
-    if (key == 's')
-    {
-        defObject->m_showSkeletonModel = !defObject->m_showSkeletonModel;
     }
 
     // option f: toggle fullscreen
@@ -704,7 +546,7 @@ void updateGraphics(void)
     /////////////////////////////////////////////////////////////////////
 
     // update skins deformable objects
-    defWorld->updateSkins(true);
+    utensilController->updateGraphics();
 
     // render world
     camera->renderView(windowW, windowH);
@@ -720,48 +562,9 @@ void updateGraphics(void)
 
 //---------------------------------------------------------------------------
 
-void moveFixedNodesToCursor(const cVector3d pos) {
-    for (int y = 0; y < numYNodes; y++) {
-        for (int x = 0; x < 10; x++) {
-            if (nodes[x][y]->m_fixed) {
-            
-                cVector3d offset(-0.1*(double)x, 0.42 - 0.1*(double)y,0);
-                nodes[x][y]->m_pos = pos + offset;
-            }
-        }
-    }
-}
 
-cVector3d computeForceOnPalette(const cVector3d& a_spherePos,
-                                double a_radius,
-                                double a_stiffness) {
-    // compute the reaction forces between the tool and the ith sphere.
-    cVector3d force;
-    force.zero();
-    
-    double xDist = abs(a_spherePos.x() - canvasX);
-    
-    // check if both objects are intersecting
-    if (xDist < 0.0000001)
-    {
-        return (force);
-    }
 
-    if (xDist > (a_radius))
-    {
-        return (force);
-    }
-    
-    // compute penetration distance between tool and surface of sphere
-    double penetrationDistance = a_radius - xDist;
-    cVector3d forceDirection = cVector3d(-1, 0, 0);
-    force = cMul( penetrationDistance * a_stiffness, forceDirection);
-    
-    // return result
-    
-    return (force);
-    
-}
+
 
 void updateHaptics(void)
 {
@@ -790,34 +593,8 @@ void updateHaptics(void)
         hapticDevice->getPosition(pos);
         pos.mul(workspaceScaleFactor);
         device->setLocalPos(pos);
-
-        // clear all external forces
-        defWorld->clearExternalForces();
-
-        moveFixedNodesToCursor(pos);
         
-        
-        cVector3d force(0.0, 0.0, 0.0);
-        for (int y=0; y<numYNodes; y++)
-        {
-            for (int x=0; x<10; x++)
-            {
-                cVector3d nodePos = nodes[x][y]->m_pos;
-                cVector3d f = computeForceOnPalette(nodePos, radius, stiffness);
-                cVector3d tmpfrc = -1.0 * f;
-                
-                force += tmpfrc * ((double) 3 * x * 1.0 / pow(10, 1));
-                
-                nodes[x][y]->setExternalForce(tmpfrc);
-            }
-        }
-
-        //Integrate dynamics
-        defWorld->updateDynamics(time);
-        
-        //Send force back to haptic device
-        force.mul(deviceForceScale);
-        hapticDevice->setForce(force);
+        utensilController->updateHaptics(time, pos, deviceForceScale);
         
         // update frequency counter
         frequencyCounter.signal(1);
@@ -826,42 +603,3 @@ void updateHaptics(void)
     // exit haptics thread
     simulationFinished = true;
 }
-
-//---------------------------------------------------------------------------
-
-
-
-
-//cVector3d computeForce(const cVector3d& a_cursor,
-//                       double a_cursorRadius,
-//                       const cVector3d& a_spherePos,
-//                       double a_radius,
-//                       double a_stiffness)
-//{
-//
-//    // compute the reaction forces between the tool and the ith sphere.
-//    cVector3d force;
-//    force.zero();
-//    cVector3d vSphereCursor = a_cursor - a_spherePos;
-//
-//    // check if both objects are intersecting
-//    if (vSphereCursor.length() < 0.0000001)
-//    {
-//        return (force);
-//    }
-//
-//    if (vSphereCursor.length() > (a_cursorRadius + a_radius))
-//    {
-//        return (force);
-//    }
-//
-//    // compute penetration distance between tool and surface of sphere
-//    double penetrationDistance = (a_cursorRadius + a_radius) - vSphereCursor.length();
-//    cVector3d forceDirection = cNormalize(vSphereCursor);
-//    force = cMul( penetrationDistance * a_stiffness, forceDirection);
-//
-//    // return result
-//    return (force);
-//}
-
-//---------------------------------------------------------------------------
