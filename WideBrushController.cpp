@@ -25,6 +25,10 @@ void WideBrushController::moveNodesToCursor(const cVector3d pos, bool onlyFixed)
             }
         }
     }
+    
+    cylinder->setLocalPos(pos);
+    box->setLocalPos(pos);
+    
 }
 
 cVector3d WideBrushController::computeForceOnPalette(const cVector3d& a_spherePos,
@@ -137,7 +141,7 @@ WideBrushController::WideBrushController(cWorld *newWorld, cMesh *newCanvas, str
     //cGELSkeletonNode::s_default_showFrame     = true;
     //cGELSkeletonNode::s_default_color.setBlueCornflower();
     cGELSkeletonNode::s_default_useGravity    = true;
-    cGELSkeletonNode::s_default_gravity.set(0.00, 0.00,-9.81);
+    cGELSkeletonNode::s_default_gravity.set(0.00, -9.81, 0.0);
     radius = cGELSkeletonNode::s_default_radius;
     
     // use internal skeleton as deformable model
@@ -211,6 +215,14 @@ WideBrushController::WideBrushController(cWorld *newWorld, cMesh *newCanvas, str
     // show/hide underlying dynamic skeleton model
     defObject->m_showSkeletonModel = false;
     
+    
+    cylinder = new cShapeCylinder(0.1, 0.1, 1.4);
+    cylinder->rotateAboutGlobalAxisDeg(cVector3d(0,1,0), 90);
+    world->addChild(cylinder);
+    
+    box = new cShapeBox(0.15, 1.05, 0.15);
+    world->addChild(box);
+    
 }
 
 void WideBrushController::updateGraphics() {
@@ -237,12 +249,14 @@ void WideBrushController::updateHaptics(double time, cVector3d pos, double devic
             force += tmpfrc * ((double) 3 * x * 1.0 / pow(numXNodes, 1));
             
             //if (x == numXNodes/2+1 && f.length() > 0) {
-            if (f.length() > 0)    drawAtPoint(nodePos, f.length(), time, (y == 0), (y == numYNodes - 1));
-            //}
+            if (f.length() > 0) drawAtPoint(nodePos, f.length(), time, (y == 0), (y == numYNodes - 1));
             
             nodes[x][y]->setExternalForce(tmpfrc);
         }
     }
+    
+    // update texture
+    canvas->m_texture->markForUpdate();
     
     //Integrate dynamics
     defWorld->updateDynamics(time);

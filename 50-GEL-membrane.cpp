@@ -213,7 +213,6 @@ int main(int argc, char* argv[])
     cout << "Copyright 2003-2014" << endl;
     cout << "-----------------------------------" << endl << endl << endl;
     cout << "Keyboard Options:" << endl << endl;
-    cout << "[s] - Show/Hide GEL Skeleton" << endl;
     cout << "[m] - Enable/Disable vertical mirroring" << endl;
     cout << "[x] - Exit application" << endl;
     cout << endl << endl;
@@ -342,7 +341,7 @@ int main(int argc, char* argv[])
     // create a large sphere that represents the haptic device
     deviceRadius = 0.1;
     device = new cShapeSphere(deviceRadius);
-    world->addChild(device);
+    //world->addChild(device);
     device->m_material->setWhite();
     device->m_material->setShininess(100);
 

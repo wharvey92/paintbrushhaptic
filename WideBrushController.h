@@ -20,7 +20,7 @@
 using namespace chai3d;
 using namespace std;
 
-#define numY 5
+#define numY 8
 #define numX 5
 
 
@@ -47,6 +47,9 @@ class WideBrushController : public UtensilController
     // stiffness properties between the haptic device tool and the model (GEM)
     double stiffness;
     
+    cShapeCylinder *cylinder;
+    
+    cShapeBox *box;
     
     
 public:

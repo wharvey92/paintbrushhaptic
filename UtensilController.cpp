@@ -38,7 +38,7 @@ void UtensilController::drawAtPoint(const cVector3d texCoord, double force, doub
     
     double K_INK = 10;
     double K_SIZE = 30;
-    int BRUSH_SIZE_Y = 100;
+    int BRUSH_SIZE_Y = 30;
     int BRUSH_SIZE_X = BRUSH_SIZE_Y;
     double size = cClamp((K_SIZE * force), 0.0, (double)(BRUSH_SIZE_Y));
     
@@ -78,10 +78,6 @@ void UtensilController::drawAtPoint(const cVector3d texCoord, double force, doub
             }
         }
     }
-    
-    
-    // update texture
-    canvas->m_texture->markForUpdate();
 }
 
 
