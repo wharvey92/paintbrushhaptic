@@ -22,11 +22,60 @@ using namespace std;
 
 class BristleBrushController : public UtensilController
 {
+    cPrecisionClock *clock0;
+    
+    const int y_dimension = 4;
+    const int x_dimension = 6;
+    const int z_dimension = 1;
+    cMultiMesh *surroundingObject;
+    double box_radius = .08;
+    double startingDist;
+    int scene = 0;
+    cMesh *spheresArray[6][4][1];
+    cVector3d accArray[6][4][1];
+    cVector3d velArray[6][4][1];
+    cVector3d originArray[6][4][1];
+    
+    cMesh* object0;
+    
+    double earthRadius = .05;
+    
+    cVector3d planePos;
+    
+    
+    cVector3d box_center;
+    
+    
+    cMesh *plane;
+    bool gravityInward = false;
+    
+    double planeHeight = .04;
+    double planeWidth = .04;
+    
+    cVector3d sphereCenter;
+    
+    double paintBrushWeakness = 2;
+    
+    double sphereRadius = .05;
+    double lineHeight;
+    double naturalSpringLength;
+    
+    double cursorRadius = .01;
+    
+    
+    double timeStep = .001;
+    
+    double springConstant = 10000;
+    double damperConstant = 10;
+    
+    double mass = .08;
+    
+    cVector3d calculateForces(cVector3d currSpherePos, cVector3d fixedSphere, double sprCons, cVector3d velocity);
 
     
 public:
     BristleBrushController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice> newHapticDevice);
-    virtual void updateHaptics(double time, cVector3d pos, double deviceForceScale);
+    virtual void updateHaptics(double time, cVector3d position, double deviceForceScale);
     virtual void updateGraphics();
     
 };
