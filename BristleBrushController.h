@@ -11,4 +11,24 @@
 
 #include <iostream>
 
+
+#include "chai3d.h"
+#include "UtensilController.h"
+#include "GEL3D.h"
+
+
+using namespace chai3d;
+using namespace std;
+
+class BristleBrushController : public UtensilController
+{
+
+    
+public:
+    BristleBrushController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice> newHapticDevice);
+    virtual void updateHaptics(double time, cVector3d pos, double deviceForceScale);
+    virtual void updateGraphics();
+    
+};
+
 #endif /* defined(__GEL__BristleBrushController__) */
