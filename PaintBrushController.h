@@ -56,7 +56,7 @@ class PaintBrushController : public UtensilController
     
     double paintBrushWeakness = 2;
     
-    double sphereRadius = .05;
+    double sphereRadius = .1;
     double lineHeight;
     double naturalSpringLength;
     

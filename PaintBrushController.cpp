@@ -113,9 +113,9 @@ void PaintBrushController::updateHaptics(double time, cVector3d position, double
     }
     
     double k = 900;
-
+    
     cVector3d force = cVector3d(0,0,0);
-
+    
     
     double massMultiplierCons = 1;
     for (int x = 0; x < x_dimension; ++x) {
@@ -139,22 +139,13 @@ void PaintBrushController::updateHaptics(double time, cVector3d position, double
                             bool len = false;
                             if (k == 0) {
                                 //Grid forces
-                                if (x > x_dimension / 5 || true)  {
-                                    cVector3d pos = position + cVector3d(0, -startingYDist + y * sphereRadius * (x_dimension - x) / 4, startingZDist - z * sphereRadius);
-                                    fixedSphere = cVector3d(pos.x() - .002 * double(k) - sphereRadius * (x_dimension - x + 3), pos.y() + .002 * (double)l, pos.z()  + .002 * (double)m);
-                                   // sprLength = .004;
-                                    sprCons /= 30;
-                                   // bool len = true;
-                                } else {
-                                    //FORCES BETWEEN BOTTOM SPHERES
-                                    continue;
-                                    if (x + k >= 0 && y + l >= 0 && x + k < x_dimension && y + l < y_dimension) {
-                                        fixedSphere = spheresArray[x][y + l][z + m]->getLocalPos() + originArray[x][y + l][z + m];
-                                        sprCons /= 10;
-                                    } else {
-                                        continue;
-                                    }
-                                }
+                                
+                                cVector3d pos = position + cVector3d(0, -startingYDist + y * sphereRadius * (x_dimension - x) / 4, startingZDist - z * sphereRadius);
+                                fixedSphere = cVector3d(pos.x() - .002 * double(k) - sphereRadius * (x_dimension - x + 1), pos.y() + .002 * (double)l, pos.z()  + .002 * (double)m);
+                                // sprLength = .004;
+                                sprCons /= ((x_dimension - x) * (x_dimension - x) * (numInContact + 2) / 2);
+                                // bool len = true;
+                                
                             }
                             else {
                                 //Spring forces between spheres
@@ -163,6 +154,7 @@ void PaintBrushController::updateHaptics(double time, cVector3d position, double
                             }
                             
                             //Apply spring forces
+                            // cout << "x is  " << x << " and spr cons is " << sprCons << endl;
                             previousForce += calculateForces(currSpherePos, fixedSphere, sprCons, velArray[x][y][z], sprLength, len);
                             
                         }
@@ -187,9 +179,9 @@ void PaintBrushController::updateHaptics(double time, cVector3d position, double
     }
     
     
-//    cVector3d middleBall = spheresArray[0][y_dimension / 2][0]->getLocalPos() + originArray[0][y_dimension / 2][0];
-//    force += calculateForces(position, middleBall, (double)springConstant, 0, naturalSpringLength);
-//
+    //    cVector3d middleBall = spheresArray[0][y_dimension / 2][0]->getLocalPos() + originArray[0][y_dimension / 2][0];
+    //    force += calculateForces(position, middleBall, (double)springConstant, 0, naturalSpringLength);
+    //
     
     
     /////////////////////////////////////////////////////////////////////
@@ -197,35 +189,35 @@ void PaintBrushController::updateHaptics(double time, cVector3d position, double
     /////////////////////////////////////////////////////////////////////
     
     
-//    cVector3d dist = position - sphereCenter;
-//    cVector3d normal = cNormalize(dist);
-//    
+    //    cVector3d dist = position - sphereCenter;
+    //    cVector3d normal = cNormalize(dist);
+    //
     
-//    //Cursor force
-//    if (position.x() < planePos.x()) {
-//        force += -k * (position.x() - planePos.x()) * cVector3d(1, 0, 0);
-//    }
+    //    //Cursor force
+    //    if (position.x() < planePos.x()) {
+    //        force += -k * (position.x() - planePos.x()) * cVector3d(1, 0, 0);
+    //    }
     
-//    //Calculate forces on spheres
-//    for (int a = 0; a < x_dimension; a++) {
-//        for (int b = 0; b < y_dimension; b++) {
-//            for (int i = 0; i < z_dimension; i++) {
-//                cVector3d pos = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i];
-//                //Sphere force
-//                cVector3d f(0,0,0);
-//                if (pos.x() < planePos.x()) {
-//                    
-//                    f += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
-//                    cVector3d acc = f / mass;
-//                    accArray[a][b][i] += acc;
-//                }
-//            }
-//        }
-//    }
-//    
-//
+    //    //Calculate forces on spheres
+    //    for (int a = 0; a < x_dimension; a++) {
+    //        for (int b = 0; b < y_dimension; b++) {
+    //            for (int i = 0; i < z_dimension; i++) {
+    //                cVector3d pos = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i];
+    //                //Sphere force
+    //                cVector3d f(0,0,0);
+    //                if (pos.x() < planePos.x()) {
+    //
+    //                    f += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
+    //                    cVector3d acc = f / mass;
+    //                    accArray[a][b][i] += acc;
+    //                }
+    //            }
+    //        }
+    //    }
+    //
+    //
     
-  //  cout << "num is " << numInContact << endl;
+    //  cout << "num is " << numInContact << endl;
     //Add forces of spheres to cursor
     for (int a = 0; a < x_dimension; a++) {
         for (int b = 0; b < y_dimension; b++) {
@@ -238,24 +230,24 @@ void PaintBrushController::updateHaptics(double time, cVector3d position, double
                     
                     if (numInContact != 0) {
                         //canvasForce /= (numInContact / 2);
-//                        if (a > x_dimension / 2) {
-//                            canvasForce /= (numInContact / 4);
-//                        } else {
-//                            canvasForce /= (numInContact / 5);
-//                        }
+                        //                        if (a > x_dimension / 2) {
+                        //                            canvasForce /= (numInContact / 4);
+                        //                        } else {
+                        //                            canvasForce /= (numInContact / 5);
+                        //                        }
                     }
                     
                     // if (a > 2) continue;
                     cVector3d acc = canvasForce / mass;
                     accArray[a][b][c] += acc;
-                 //   if (a > 3) continue;
+                    //   if (a > 3) continue;
                     //force += canvasForce * (double)(((x + 1) / 7.0) * 1.2);// * 1.0 / pow(x_dimension, paintBrushWeakness));
                     force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 20;
                     //force += canvasForce * ((double)(x + 60) * 1.0 / pow(x_dimension, paintBrushWeakness));
                     
                     // cout << "force is " << force << endl;
                 }
-
+                
             }
         }
     }
@@ -265,7 +257,7 @@ void PaintBrushController::updateHaptics(double time, cVector3d position, double
     surroundingObject->updateBoundaryBox();
     
     force.mul(deviceForceScale);
-//    cout << "Force is " << force << endl;
+    //    cout << "Force is " << force << endl;
     hapticDevice->setForce(force);
 }
 

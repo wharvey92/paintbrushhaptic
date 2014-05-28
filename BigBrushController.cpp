@@ -252,6 +252,7 @@ void BigBrushController::updateHaptics(double time, cVector3d position, double d
         }
     }
     
+   // canvas->m_normalMap->m_image->getPixelColor(<#const unsigned int a_x#>, <#const unsigned int a_y#>, <#chai3d::cColorb &a_color#>)
     
     
     surroundingObject->updateBoundaryBox();

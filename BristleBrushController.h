@@ -24,17 +24,17 @@ class BristleBrushController : public UtensilController
 {
     cPrecisionClock *clock0;
     
-    const int y_dimension = 4;
-    const int x_dimension = 6;
+    const int y_dimension = 2;
+    const int x_dimension = 8;
     const int z_dimension = 1;
     cMultiMesh *surroundingObject;
     double box_radius = .08;
     double startingDist;
     int scene = 0;
-    cMesh *spheresArray[6][4][1];
-    cVector3d accArray[6][4][1];
-    cVector3d velArray[6][4][1];
-    cVector3d originArray[6][4][1];
+    cMesh *spheresArray[8][2][1];
+    cVector3d accArray[8][2][1];
+    cVector3d velArray[8][2][1];
+    cVector3d originArray[8][2][1];
     
     cMesh* object0;
     
@@ -65,7 +65,7 @@ class BristleBrushController : public UtensilController
     
     double timeStep = .001;
     
-    double springConstant = 10000;
+    double springConstant = 11000;
     double damperConstant = 10;
     
     double mass = .08;

@@ -10,7 +10,7 @@
 
 BristleBrushController::BristleBrushController(cWorld *newWorld, cMesh *newCanvas, string resourceRoot, shared_ptr<cGenericHapticDevice>newHapticDevice)  : UtensilController(newWorld, newCanvas, resourceRoot, newHapticDevice) {
     
-    naturalSpringLength = sphereRadius / 1.5;
+    naturalSpringLength = sphereRadius / 2.2;
     
     sphereCenter = cVector3d(-.05,0, 0);
     
@@ -123,7 +123,7 @@ cVector3d BristleBrushController::calculateForces(cVector3d currSpherePos, cVect
 
 void BristleBrushController::updateHaptics(double time, cVector3d position, double deviceForceScale) {
     double d = earthRadius;
-    
+    double k = 1000;
     bool contact = false;
     //Calculate forces on spheres
     //        for (int a = 0; a < x_dimension; a++) {
@@ -150,7 +150,7 @@ void BristleBrushController::updateHaptics(double time, cVector3d position, doub
     }
     
     
-    
+    cVector3d force = cVector3d(0,0,0);
     
     double massMultiplierCons = 1;
     for (int x = 0; x < x_dimension; ++x) {
@@ -173,9 +173,10 @@ void BristleBrushController::updateHaptics(double time, cVector3d position, doub
                             double sprCons = springConstant;
                             if (k == 0) {
                                 //Grid forces
-                                if (x > x_dimension / 4 )  {
+                                if (x > x_dimension / 4)  {
                                     cVector3d pos = position + cVector3d(0, -startingDist + y * sphereRadius, startingDist - z * sphereRadius);
                                     fixedSphere = cVector3d(pos.x() - .002 * double(k) - sphereRadius * (x_dimension - x + 3), pos.y() + .002 * (double)l, pos.z()  + .002 * (double)m);
+                                    
                                 } else {
                                     //FORCES BETWEEN BOTTOM SPHERES
                                     continue;
@@ -209,6 +210,17 @@ void BristleBrushController::updateHaptics(double time, cVector3d position, doub
                 accArray[x][y][z] = cVector3d(0,0,0);
                 cVector3d newPos = currSpherePos + velArray[x][y][z] * timeStep;
                 spheresArray[x][y][z]->setLocalPos(newPos - originArray[x][y][z]);
+                
+                cVector3d pos = spheresArray[x][y][z]->getLocalPos() + originArray[x][y][z];
+                //Sphere force
+                cVector3d canvasForce(0,0,0);
+                if (pos.x() < planePos.x()) {
+                    // cout << "this pos " << pos.x() << endl;
+                    canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
+                    cVector3d acc = canvasForce / mass;
+                    accArray[x][y][z] += acc;
+                    force += canvasForce * ((double)x * 1.0 / pow(x_dimension, paintBrushWeakness));
+                }
             }
         }
     }
@@ -219,34 +231,10 @@ void BristleBrushController::updateHaptics(double time, cVector3d position, doub
     // COMPUTE FORCES
     /////////////////////////////////////////////////////////////////////
     
-    cVector3d force = cVector3d(0,0,0);
+    
     
     cVector3d dist = position - sphereCenter;
     cVector3d normal = cNormalize(dist);
-    double k = 3000;
-    //
-    //        //Cursor force
-    //        if (dist.length() < d) {
-    //            force += -k * (dist.length() - d) * normal;
-    //        }
-    //
-    //        //Calculate forces on spheres
-    //        for (int a = 0; a < x_dimension; a++) {
-    //            for (int b = 0; b < y_dimension; b++) {
-    //                for (int i = 0; i < z_dimension; i++) {
-    //                    cVector3d dist = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i] - sphereCenter;
-    //                    cVector3d normal = cNormalize(dist);
-    //                    //Sphere force
-    //                    cVector3d f(0,0,0);
-    //                    if (dist.length() < d) {
-    //
-    //                        f += -k * (dist.length() - d) * normal;
-    //                        cVector3d acc = f / mass;
-    //                        accArray[a][b][i] += acc;
-    //                    }
-    //                }
-    //            }
-    //        }
     
     
     
@@ -255,34 +243,23 @@ void BristleBrushController::updateHaptics(double time, cVector3d position, doub
         force += -k * (position.x() - planePos.x()) * cVector3d(1, 0, 0);
     }
     
-        //Calculate forces on spheres
-        for (int a = 0; a < x_dimension; a++) {
-            for (int b = 0; b < y_dimension; b++) {
-                for (int i = 0; i < z_dimension; i++) {
-                    cVector3d pos = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i];
-                    //Sphere force
-                    cVector3d f(0,0,0);
-                    if (pos.x() < planePos.x()) {
-                        f += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
-                        cVector3d acc = f / mass;
-                        accArray[a][b][i] += acc;
-                    }
-                }
-            }
-        }
-
-
-        //Add forces of spheres to cursor
-        for (int a = 0; a < x_dimension; a++) {
-            for (int b = 0; b < y_dimension; b++) {
-                for (int c = 0; c < z_dimension; c++) {
-                cVector3d f = accArray[a][b][c] * mass;
-                force += f * ((double)a * 1.0 / pow(x_dimension, paintBrushWeakness));
-                }
-            }
-        }
-
-    
+//    //Calculate forces on spheres
+//    for (int a = 0; a < x_dimension; a++) {
+//        for (int b = 0; b < y_dimension; b++) {
+//            for (int i = 0; i < z_dimension; i++) {
+//                cVector3d pos = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i];
+//                //Sphere force
+//                cVector3d f(0,0,0);
+//                if (pos.x() < planePos.x()) {
+//                    // cout << "this pos " << pos.x() << endl;
+//                    f += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
+//                    cVector3d acc = f / mass;
+//                    accArray[a][b][i] += acc;
+//                    force += f * ((double)a * 1.0 / pow(x_dimension, paintBrushWeakness));
+//                }
+//            }
+//        }
+//    }
 
     surroundingObject->updateBoundaryBox();
     
