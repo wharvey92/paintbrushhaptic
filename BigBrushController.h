@@ -24,17 +24,22 @@ class BigBrushController : public UtensilController
 {
     cPrecisionClock *clock0;
     
-    const int x_dimension = 8;
-    const int y_dimension = 3;
+    const int x_dimension = 1;
+    const int y_dimension = 1;
     const int z_dimension = 1;
     cMultiMesh *surroundingObject;
     double box_radius = .08;
     double startingDist;
     int scene = 0;
-    cMesh *spheresArray[8][3][1];
-    cVector3d accArray[8][3][1];
-    cVector3d velArray[8][3][1];
-    cVector3d originArray[8][3][1];
+//    cMesh *spheresArray[8][3][1];
+//    cVector3d accArray[8][3][1];
+//    cVector3d velArray[8][3][1];
+//    cVector3d originArray[8][3][1];
+    
+    cMesh *spheresArray[1][1][1];
+    cVector3d accArray[1][1][1];
+    cVector3d velArray[1][1][1];
+    cVector3d originArray[1][1][1];
     
     cMesh* object0;
     
@@ -42,7 +47,7 @@ class BigBrushController : public UtensilController
     
     cVector3d planePos;
     
-    
+    cAlgorithmFingerProxy *fingerProxy;
     cVector3d box_center;
     
     
@@ -65,6 +70,7 @@ class BigBrushController : public UtensilController
     
     double cursorRadius = .01;
     
+    cMesh *testSphere;
     
     double timeStep = .001;
     

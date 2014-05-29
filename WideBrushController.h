@@ -48,7 +48,7 @@ class WideBrushController : public UtensilController
     double stiffness;
     
     cShapeCylinder *cylinder;
-    
+    cVector3d getNormalAtPosition(cVector3d pos);
     cShapeBox *box;
     
     

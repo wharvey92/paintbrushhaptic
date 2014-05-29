@@ -53,7 +53,9 @@ cVector3d WideBrushController::computeForceOnPalette(const cVector3d& a_spherePo
     
     // compute penetration distance between tool and surface of sphere
     double penetrationDistance = a_radius - xDist;
-    cVector3d forceDirection = cVector3d(-1, 0, 0);
+    
+    // cVector3d forceDirection = cVector3d(-1, 0, 0);
+    cVector3d forceDirection = getNormalAtPosition(a_spherePos);
     force = cMul( penetrationDistance * a_stiffness, forceDirection);
     
     // return result
@@ -229,6 +231,40 @@ void WideBrushController::updateGraphics() {
     defWorld->updateSkins(true);
 }
 
+cVector3d WideBrushController::getNormalAtPosition(cVector3d pos) {
+    int px, py;
+    cVector3d newCoord;
+    
+    newCoord.x((pos.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
+    newCoord.y((pos.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
+    
+    newCoord.z(0);
+    canvas->m_normalMap->m_image->getPixelLocation(newCoord, px, py);
+    
+    
+    cColorb grad;
+    canvas->m_normalMap->m_image->getPixelColor(px, py, grad);
+    
+    
+    cVector3d g = cVector3d((double)grad.getR(), (double)grad.getG(), (double)grad.getB());
+    //                    cout << "Gradient is " << cNormalize(g) << endl;
+    const double SCALE = (1.0/255.0);
+    double fX00 = SCALE * (grad.getR() - 128);
+    double fY00 =-SCALE * (grad.getG() - 128);
+    double fZ00 = SCALE * (grad.getB() - 128);
+    
+    double pi = 3.14159;
+    cMatrix3d rotAboutY = cMatrix3d(cos(pi / 2), 0, sin(pi / 2),0 , 1, 0, -sin(pi / 2), 0, cos(pi / 2));
+    cMatrix3d rotAboutX = cMatrix3d(1, 0, 0, 0 , cos(pi / 2), -sin(pi / 2), 0, sin(pi / 2), cos(pi / 2));
+    
+    g.set(fX00, fY00, fZ00);
+    g = rotAboutY * g;
+    g = rotAboutX * g;
+    g = cNormalize(g);
+    
+    return g;
+}
+
 
 void WideBrushController::updateHaptics(double time, cVector3d pos, double deviceForceScale) {
     // clear all external forces
@@ -243,14 +279,29 @@ void WideBrushController::updateHaptics(double time, cVector3d pos, double devic
         for (int x=0; x<numXNodes; x++)
         {
             cVector3d nodePos = nodes[x][y]->m_pos;
+        
             cVector3d f = computeForceOnPalette(nodePos, radius, stiffness);
-            cVector3d tmpfrc = -1.0 * f;
+            //Got rid of the -1 multiplication here (used to be cVector3d tmpfrc = -1 * f)
+            cVector3d tmpfrc = f;
             
             force += tmpfrc * ((double) 3 * x * 1.0 / pow(numXNodes, 1));
             
             //if (x == numXNodes/2+1 && f.length() > 0) {
-            if (f.length() > 0) drawAtPoint(nodePos, f.length(), time, (y == 0), (y == numYNodes - 1));
             
+            if (f.length() > 0) {
+                
+                if (y != 0) {
+                    
+                    
+                    drawBetweenPoints(nodePos, nodes[x][y - 1]->m_pos, f.length(), time);
+                    
+                    
+                    //drawAtPoint(nodePos, f.length(), time, (y == 0), (y == numYNodes - 1));
+                } else {
+                    //drawBetweenPoints(nodePos, nodes[x][y - 1]->m_pos, f.length(), time, (y == 0), (y == numYNodes - 1));
+                }
+
+            }
             nodes[x][y]->setExternalForce(tmpfrc);
         }
     }

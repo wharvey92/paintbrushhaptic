@@ -69,7 +69,7 @@ class RealBrushController : public UtensilController
     
     double timeStep = .001;
     
-    double springConstant = 10000;
+    double springConstant = 5000;
     double damperConstant = 10;
     
     double mass = .08;
@@ -77,7 +77,7 @@ class RealBrushController : public UtensilController
     
     cVector3d pastForce;
     cVector3d calculateForces(cVector3d currSpherePos, cVector3d fixedSphere, double sprCons, cVector3d velocity, double sprLength, bool lengthOn);
-    
+    cVector3d getNormalAtPosition(cVector3d pos);
     
 public:
     RealBrushController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice> newHapticDevice);

@@ -32,6 +32,7 @@ public:
     void setCanvasSize(double size);
         
 protected:
+    void drawBetweenPoints(const cVector3d texCoord, const cVector3d texCoord2, double force, double timeInterval) ;
     void drawAtPoint(const cVector3d texCoord, double force, double timeInterval, bool left, bool right);
 };
 

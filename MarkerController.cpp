@@ -147,76 +147,96 @@ void MarkerController::updateHaptics(double time, cVector3d position, double dev
                 accArray[x][y][z] = cVector3d(0,0,0);
                 cVector3d newPos = currSpherePos + velArray[x][y][z] * timeStep;
                 spheresArray[x][y][z]->setLocalPos(newPos - originArray[x][y][z]);
-                
-                cVector3d pos = spheresArray[x][y][z]->getLocalPos() + originArray[x][y][z];
-                
-                //Sphere force
-                cVector3d canvasForce(0,0,0);
-                if (pos.x() < planePos.x()) {
-                    // cout << "this pos " << pos.x() << endl;
-                    canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
-                    cVector3d acc = canvasForce / mass;
-                    accArray[x][y][z] += acc;
-                    force += canvasForce * ((double)x * 1.0 / pow(x_dimension, paintBrushWeakness));
-                }
+//                
+//                cVector3d pos = spheresArray[x][y][z]->getLocalPos() + originArray[x][y][z];
+//                
+//                //Sphere force
+//                cVector3d canvasForce(0,0,0);
+//                if (pos.x() < planePos.x()) {
+//                    // cout << "this pos " << pos.x() << endl;
+//                    canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
+//                    cVector3d acc = canvasForce / mass;
+//                    accArray[x][y][z] += acc;
+//                    force += canvasForce * ((double)x * 1.0 / pow(x_dimension, paintBrushWeakness));
+//                }
             }
         }
     }
     
     
-    
-    /////////////////////////////////////////////////////////////////////
-    // COMPUTE FORCES
-    /////////////////////////////////////////////////////////////////////
-    
-    
-    
-    cVector3d dist = position - sphereCenter;
-    cVector3d normal = cNormalize(dist);
-    
-    
-    
-    //Cursor force
-    if (position.x() < planePos.x()) {
-        force += -k * (position.x() - planePos.x()) * cVector3d(1, 0, 0);
+    for (int a = 0; a < x_dimension; a++) {
+        for (int b = 0; b < y_dimension; b++) {
+            for (int c = 0; c < z_dimension; c++) {
+                cVector3d pos = spheresArray[a][b][c]->getLocalPos() + originArray[a][b][c];
+                //Sphere force
+                cVector3d canvasForce(0,0,0);
+                if (pos.x() < planePos.x()) {
+                    
+                    int px, py;
+                    cVector3d newCoord;
+                    
+                    newCoord.x((pos.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
+                    newCoord.y((pos.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
+                    
+                    newCoord.z(0);
+                    canvas->m_normalMap->m_image->getPixelLocation(newCoord, px, py);
+                    // canvas->m_texture->m_image->getPixelLocation(newCoord, px, py);
+                    
+                    
+                    cColorb grad;
+                    canvas->m_normalMap->m_image->getPixelColor(px, py, grad);
+                    
+                    
+                    cVector3d g = cVector3d((double)grad.getR(), (double)grad.getG(), (double)grad.getB());
+                    //                    cout << "Gradient is " << cNormalize(g) << endl;
+                    const double SCALE = (1.0/255.0);
+                    double fX00 = SCALE * (grad.getR() - 128);
+                    double fY00 =-SCALE * (grad.getG() - 128);
+                    double fZ00 = SCALE * (grad.getB() - 128);
+                    
+                    double pi = 3.14159;
+                    cMatrix3d rot = cMatrix3d(cos(pi / 2), 0, sin(pi / 2),0 , 1, 0, -sin(pi / 2), 0, cos(pi / 2));
+                    
+                    cMatrix3d rot2 = cMatrix3d(1, 0, 0, 0 , cos(pi / 2), -sin(pi / 2), 0, sin(pi / 2), cos(pi / 2));
+                    
+                    
+                    
+                    
+                    // assign gradient
+                    g.set(fX00, fY00, fZ00);
+                    g = rot * g;
+                    g = rot2 * g;
+                    
+                    
+                    cMesh *blah = new cMesh();
+                    //
+                    //                    if (a == 0 && b == 0 && c == 0) {
+                    //                        cShapeLine *line = new cShapeLine(pos, pos + g);
+                    //                        world->addChild(line);
+                    //                    }
+                    
+                    g = cNormalize(g);
+                    //  g.set(g.x(), g.y() - .6, g.z());
+                    canvasForce += -k * (pos.x() - planePos.x()) * g;
+                    
+                    
+                    //  canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1,0,0);
+                    
+                    cVector3d acc = canvasForce / mass;
+                    accArray[a][b][c] += acc;
+                    //   if (a > 3) continue;
+                    //force += canvasForce * (double)(((x + 1) / 7.0) * 1.2);// * 1.0 / pow(x_dimension, paintBrushWeakness));
+                    //if (a < 6) continue;
+                    force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 10 ;
+                    //force += canvasForce * ((double)(x + 60) * 1.0 / pow(x_dimension, paintBrushWeakness));
+                    
+                    // cout << "force is " << force << endl;
+                }
+                
+            }
+        }
     }
-    
-    //    //Calculate forces on spheres
-    //    for (int a = 0; a < x_dimension; a++) {
-    //        for (int b = 0; b < y_dimension; b++) {
-    //            for (int i = 0; i < z_dimension; i++) {
-    //                cVector3d pos = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i];
-    //                //Sphere force
-    //                cVector3d f(0,0,0);
-    //                if (pos.x() < planePos.x()) {
-    //                    // cout << "this pos " << pos.x() << endl;
-    //                    f += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
-    //                    cVector3d acc = f / mass;
-    //                    accArray[a][b][i] += acc;
-    //                    force += f * ((double)a * 1.0 / pow(x_dimension, paintBrushWeakness));
-    //                }
-    //            }
-    //        }
-    //    }
-    
-//    for (int x = 0; x < x_dimension; x++) {
-//        for (int x_2 = 0; x_2 < x_dimension;x_2++) {
-//            if (x == x_2) continue;
-//            cVector3d currSpherePos = spheresArray[x][0][0]->getLocalPos() + originArray[x][0][0];
-//            cVector3d otherSpherePos = spheresArray[x_2][0][0]->getLocalPos() + originArray[x_2][0][0];
-//            cVector3d vec_between = currSpherePos - otherSpherePos;
-//            cVector3d f(0, 0, 0);
-//            if (vec_between.length() < sphereRadius ) {
-//                 cout << "CONTACT" << endl;
-//                f = -k / 5 * (vec_between.length() - sphereRadius) * cNormalize(vec_between);
-//                cVector3d acc = f / mass;
-//                accArray[x][0][0] += acc;
-//            }
-//            
-//        }
-//    }
-    
-    surroundingObject->updateBoundaryBox();
+
     force.mul(deviceForceScale);
     
     hapticDevice->setForce(force);

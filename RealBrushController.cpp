@@ -117,7 +117,7 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
         }
     }
     
-    double k = 900;
+    double k = 700;
     
     cVector3d force = cVector3d(0,0,0);
     
@@ -148,7 +148,7 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
                                 cVector3d pos = position + cVector3d(0, -startingYDist + y * sphereRadius * (x_dimension - x) / 4, startingZDist - z * sphereRadius);
                                 fixedSphere = cVector3d(pos.x() - .002 * double(k) - sphereRadius * (x_dimension - x + 1), pos.y() + .002 * (double)l, pos.z()  + .002 * (double)m);
                                 // sprLength = .004;
-                                sprCons /= (2 * (x_dimension - x) * (x_dimension - x));
+                                sprCons /= (3 * (x_dimension - x) * (x_dimension - x));
                                 // bool len = true;
                                 
                             }
@@ -193,35 +193,7 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
     // COMPUTE FORCES
     /////////////////////////////////////////////////////////////////////
     
-    
-    //    cVector3d dist = position - sphereCenter;
-    //    cVector3d normal = cNormalize(dist);
-    //
-    
-    //    //Cursor force
-    //    if (position.x() < planePos.x()) {
-    //        force += -k * (position.x() - planePos.x()) * cVector3d(1, 0, 0);
-    //    }
-    
-    //    //Calculate forces on spheres
-    //    for (int a = 0; a < x_dimension; a++) {
-    //        for (int b = 0; b < y_dimension; b++) {
-    //            for (int i = 0; i < z_dimension; i++) {
-    //                cVector3d pos = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i];
-    //                //Sphere force
-    //                cVector3d f(0,0,0);
-    //                if (pos.x() < planePos.x()) {
-    //
-    //                    f += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
-    //                    cVector3d acc = f / mass;
-    //                    accArray[a][b][i] += acc;
-    //                }
-    //            }
-    //        }
-    //    }
-    //
-    //
-    
+
     //  cout << "num is " << numInContact << endl;
     //Add forces of spheres to cursor
     for (int a = 0; a < x_dimension; a++) {
@@ -232,65 +204,19 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
                 cVector3d canvasForce(0,0,0);
                 if (pos.x() < planePos.x()) {
                     
-                    int px, py;
-                    cVector3d newCoord;
                     
-                    newCoord.x((pos.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
-                    newCoord.y((pos.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
-                    
-                    newCoord.z(0);
-                    canvas->m_normalMap->m_image->getPixelLocation(newCoord, px, py);
-                   // canvas->m_texture->m_image->getPixelLocation(newCoord, px, py);
-                    
-
-                    cColorb grad;
-                    canvas->m_normalMap->m_image->getPixelColor(px, py, grad);
-                    
-                    
-                    cVector3d g = cVector3d((double)grad.getR(), (double)grad.getG(), (double)grad.getB());
-//                    cout << "Gradient is " << cNormalize(g) << endl;
-                    const double SCALE = (1.0/255.0);
-                    double fX00 = SCALE * (grad.getR() - 128);
-                    double fY00 =-SCALE * (grad.getG() - 128);
-                    double fZ00 = SCALE * (grad.getB() - 128);
-                    
-                    double pi = 3.14159;
-                    cMatrix3d rot = cMatrix3d(cos(pi / 2), 0, sin(pi / 2),0 , 1, 0, -sin(pi / 2), 0, cos(pi / 2));
-                    
-                    cMatrix3d rot2 = cMatrix3d(1, 0, 0, 0 , cos(pi / 2), -sin(pi / 2), 0, sin(pi / 2), cos(pi / 2));
-                    
-                    
-                   
-
-                    // assign gradient
-                    g.set(fX00, fY00, fZ00);
-                    g = rot * g;
-                    g = rot2 * g;
-                    
-                    
-                    cMesh *blah = new cMesh();
-//                
-//                    if (a == 0 && b == 0 && c == 0) {
-//                        cShapeLine *line = new cShapeLine(pos, pos + g);
-//                        world->addChild(line);
-//                    }
-                    
-                    g = cNormalize(g);
-                  //  g.set(g.x(), g.y() - .6, g.z());
+                    cVector3d g = getNormalAtPosition(pos);
                     canvasForce += -k * (pos.x() - planePos.x()) * g;
 
                     
-                  //  canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1,0,0);
-
+                     if (canvasForce.length() > 0) drawAtPoint(pos, canvasForce.length(), time, (b == 0), (b == y_dimension - 1));
+                    
+                    
                     cVector3d acc = canvasForce / mass;
                     accArray[a][b][c] += acc;
-                    //   if (a > 3) continue;
                     //force += canvasForce * (double)(((x + 1) / 7.0) * 1.2);// * 1.0 / pow(x_dimension, paintBrushWeakness));
-                    //if (a < 6) continue;
                     force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 10 ;
-                    //force += canvasForce * ((double)(x + 60) * 1.0 / pow(x_dimension, paintBrushWeakness));
 
-                    // cout << "force is " << force << endl;
                 }
 
             }
@@ -310,16 +236,48 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
 //    hapticDevice->getLinearVelocity(v);
 //    cVector3d f = calculateForces(p, mid, springConstant, v, naturalSpringLength * 4, true);
     
+    // update texture
+    canvas->m_texture->markForUpdate();
+    
+    //Integrate dynamics    
+    //Send force back to haptic device
     force.mul(deviceForceScale);
-    //    cout << "Force is " << force << endl;
-    
-  // cout << "checking location " << spheresArray[0][0][0]->getLocalPos() + originArray[0][0][0] << endl;
-    
-    
-    
-    
     
     hapticDevice->setForce(force);
+}
+
+cVector3d RealBrushController::getNormalAtPosition(cVector3d pos) {
+    int px, py;
+    cVector3d newCoord;
+    
+    newCoord.x((pos.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
+    newCoord.y((pos.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
+    
+    newCoord.z(0);
+    canvas->m_normalMap->m_image->getPixelLocation(newCoord, px, py);
+    
+    
+    cColorb grad;
+    canvas->m_normalMap->m_image->getPixelColor(px, py, grad);
+    
+    
+    cVector3d g = cVector3d((double)grad.getR(), (double)grad.getG(), (double)grad.getB());
+    //                    cout << "Gradient is " << cNormalize(g) << endl;
+    const double SCALE = (1.0/255.0);
+    double fX00 = SCALE * (grad.getR() - 128);
+    double fY00 =-SCALE * (grad.getG() - 128);
+    double fZ00 = SCALE * (grad.getB() - 128);
+    
+    double pi = 3.14159;
+    cMatrix3d rotAboutY = cMatrix3d(cos(pi / 2), 0, sin(pi / 2),0 , 1, 0, -sin(pi / 2), 0, cos(pi / 2));
+    cMatrix3d rotAboutX = cMatrix3d(1, 0, 0, 0 , cos(pi / 2), -sin(pi / 2), 0, sin(pi / 2), cos(pi / 2));
+
+    g.set(fX00, fY00, fZ00);
+    g = rotAboutY * g;
+    g = rotAboutX * g;
+    g = cNormalize(g);
+    
+    return g;
 }
 
 void RealBrushController::updateGraphics() {

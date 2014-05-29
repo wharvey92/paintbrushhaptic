@@ -13,13 +13,18 @@ BigBrushController::BigBrushController(cWorld *newWorld, cMesh *newCanvas, strin
     naturalSpringLength = sphereRadius / 2.2;
     
     sphereCenter = cVector3d(-.05,0, 0);
-    
+    testSphere = new cMesh();
+    cCreateSphere(testSphere, .15);
+    newWorld->addChild(testSphere);
+    testSphere->m_material->setGreen();
+
     
     double distBetweenSpheres = sphereRadius;
     
     
     startingYDist = distBetweenSpheres * y_dimension / 2 - distBetweenSpheres / 2;
     startingZDist = distBetweenSpheres * z_dimension / 2 - distBetweenSpheres / 2;
+    
     
     surroundingObject = new cMultiMesh();
     for (int i = 0; i < x_dimension; i++) {
@@ -28,6 +33,14 @@ BigBrushController::BigBrushController(cWorld *newWorld, cMesh *newCanvas, strin
                 cMesh *sphere = new cMesh();
                 cVector3d sphereOrigin = cVector3d(0 + i * distBetweenSpheres, -startingYDist + j * distBetweenSpheres, startingZDist - k * distBetweenSpheres );
                 cCreateSphere(sphere, sphereRadius, 32, 32, sphereOrigin);
+                
+                if (i == 0 && j == 0 && k == 0) {
+                    fingerProxy = new cAlgorithmFingerProxy();
+                    fingerProxy->initialize(newWorld, sphereOrigin);
+                    fingerProxy->setProxyRadius(.001);
+                    sphere->m_material->setOrange();
+                }
+                
                 spheresArray[i][j][k] = sphere;
                 // world->addChild(sphere);
                 velArray[i][j][k] = cVector3d(0,0,0);
@@ -41,7 +54,7 @@ BigBrushController::BigBrushController(cWorld *newWorld, cMesh *newCanvas, strin
     
     //  surroundingObject->setShowBoundaryBox(true);
     surroundingObject->m_material->setRed();
-    world->addChild(surroundingObject);
+    newWorld->addChild(surroundingObject);
     
     
     planePos = canvas->getLocalPos();
@@ -217,49 +230,69 @@ void BigBrushController::updateHaptics(double time, cVector3d position, double d
     //
     //
     
-    //  cout << "num is " << numInContact << endl;
-    //Add forces of spheres to cursor
-    for (int a = 0; a < x_dimension; a++) {
-        for (int b = 0; b < y_dimension; b++) {
-            for (int c = 0; c < z_dimension; c++) {
-                cVector3d pos = spheresArray[a][b][c]->getLocalPos() + originArray[a][b][c];
-                //Sphere force
-                cVector3d canvasForce(0,0,0);
-                if (pos.x() < planePos.x()) {
-                    canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
-                    
-                    if (numInContact != 0) {
-                        //canvasForce /= (numInContact / 2);
-                        //                        if (a > x_dimension / 2) {
-                        //                            canvasForce /= (numInContact / 4);
-                        //                        } else {
-                        //                            canvasForce /= (numInContact / 5);
-                        //                        }
-                    }
-                    
-                    // if (a > 2) continue;
-                    cVector3d acc = canvasForce / mass;
-                    accArray[a][b][c] += acc;
-                    //   if (a > 3) continue;
-                    //force += canvasForce * (double)(((x + 1) / 7.0) * 1.2);// * 1.0 / pow(x_dimension, paintBrushWeakness));
-                    force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 20;
-                    //force += canvasForce * ((double)(x + 60) * 1.0 / pow(x_dimension, paintBrushWeakness));
-                    
-                    // cout << "force is " << force << endl;
-                }
-                
-            }
-        }
-    }
-    
-   // canvas->m_normalMap->m_image->getPixelColor(<#const unsigned int a_x#>, <#const unsigned int a_y#>, <#chai3d::cColorb &a_color#>)
-    
+//    //  cout << "num is " << numInContact << endl;
+//    //Add forces of spheres to cursor
+//    for (int a = 0; a < x_dimension; a++) {
+//        for (int b = 0; b < y_dimension; b++) {
+//            for (int c = 0; c < z_dimension; c++) {
+//                cVector3d pos = spheresArray[a][b][c]->getLocalPos() + originArray[a][b][c];
+//                //Sphere force
+//                cVector3d canvasForce(0,0,0);
+//                if (pos.x() < planePos.x()) {
+//                    canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
+//                    
+////                    if (numInContact != 0) {
+////                        //canvasForce /= (numInContact / 2);
+////                        //                        if (a > x_dimension / 2) {
+////                        //                            canvasForce /= (numInContact / 4);
+////                        //                        } else {
+////                        //                            canvasForce /= (numInContact / 5);
+////                        //                        }
+////                    }
+//                    
+//                    // if (a > 2) continue;
+//                    cVector3d acc = canvasForce / mass;
+//                    accArray[a][b][c] += acc;
+//                    //   if (a > 3) continue;
+//                    //force += canvasForce * (double)(((x + 1) / 7.0) * 1.2);// * 1.0 / pow(x_dimension, paintBrushWeakness));
+//                    force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 20;
+//                    //force += canvasForce * ((double)(x + 60) * 1.0 / pow(x_dimension, paintBrushWeakness));
+//                    
+//                    // cout << "force is " << force << endl;
+//                }
+//                
+//            }
+//        }
+//    }
+//    
+//      
     
     surroundingObject->updateBoundaryBox();
     
     force.mul(deviceForceScale);
     //    cout << "Force is " << force << endl;
-    hapticDevice->setForce(force);
+    
+ cout << "checking location " << spheresArray[0][0][0]->getLocalPos() + originArray[0][0][0] << endl;
+    
+    
+    
+//  cVector3d test = fingerProxy->computeForces(spheresArray[0][0][0]->getLocalPos() + originArray[0][0][0], velArray[0][0][0]);
+    cVector3d p;
+    cVector3d v;
+    hapticDevice->getPosition(p);
+    hapticDevice->getLinearVelocity(v);
+    cVector3d test = fingerProxy->computeForces(p * 20, v);
+   cout << "test is " << test << endl;
+// test.mul(deviceForceScale);
+    cout << "Device force scale " << deviceForceScale << endl;
+    
+    cVector3d newSph = fingerProxy->getProxyGlobalPosition();
+    testSphere->setHapticEnabled(false);
+  
+    testSphere->setLocalPos(newSph);
+    
+    
+    hapticDevice->setForce(test);
 }
 
 void BigBrushController::updateGraphics() {
