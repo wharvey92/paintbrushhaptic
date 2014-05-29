@@ -54,6 +54,7 @@
 #include "RealBrushController.h"
 #include "SoftMarkerController.h"
 #include "SmallBrushController.h"
+#include "PencilController.h"
 
 
 //------------------------------------------------------------------------------
@@ -90,6 +91,8 @@ bool mirroredDisplay = false;
 int currScene;
 
 int currPaint;
+
+int currCanvas = 0;
 
 //---------------------------------------------------------------------------
 // DECLARED VARIABLES
@@ -139,7 +142,7 @@ bool simulationRunning = false;
 // flag to indicate if the haptic simulation has terminated
 bool simulationFinished = true;
 
-const int NUMBER_OF_SCENES = 2;
+const int NUMBER_OF_SCENES = 3;
 const int NUMBER_OF_PAINTS = 5;
 
 // frequency counter to measure the simulation haptic rate
@@ -232,6 +235,10 @@ int main(int argc, char* argv[])
     cout << "Keyboard Options:" << endl << endl;
     cout << "[m] - Enable/Disable vertical mirroring" << endl;
     cout << "[x] - Exit application" << endl;
+    cout << "[p] - Change paint color" << endl;
+    cout << "[space] - Change utensils" << endl;
+    cout << "[c] - Clear canvas" << endl;
+    cout << "[s] - Switch canvases" << endl;
     cout << endl << endl;
 
     // parse first arg to try and locate resources
@@ -402,7 +409,7 @@ int main(int argc, char* argv[])
     
     // set graphic properties
     canvas->m_texture = cTexture2d::create();
-    bool fileload = canvas->m_texture->loadFromFile("/Users/diegocanales/Documents/testcs277/chai3d-3.0.0/bin/resources/images/canvas.jpg");
+    bool fileload = canvas->m_texture->loadFromFile("/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/canvas.jpg");
 
     if (!fileload)
     {
@@ -493,6 +500,8 @@ int main(int argc, char* argv[])
     return (0);
 }
 
+
+
 //---------------------------------------------------------------------------
 
 void resizeWindow(int w, int h)
@@ -562,9 +571,76 @@ void switchScene() {
             cout << "At scene 1 " << endl;
             break;
         }
+        case 2: {
+            PencilController *newController = new PencilController(world, canvas, resourceRoot, hapticDevice);
+            utensilController = newController;
+            utensilController->setCanvasSize(canvasSize);
+            setPaintColor(currPaint);
+            cout << "At scene 2 " << endl;
+            break;
+        }
         default:
             break;
     }
+}
+
+void switchCanvas() {
+    
+    string path = "/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/";
+    currCanvas++;
+    
+    
+    string newCanvasFile = "";
+    switch (currCanvas%4) {
+        case 0: {
+            newCanvasFile = "canvas.jpg";
+            break;
+        }
+        case 1: {
+            newCanvasFile = "bigbrown.jpg";
+            break;
+        }
+        case 2: {
+            newCanvasFile = "paper.jpg";
+            break;
+        }
+        case 3: {
+            newCanvasFile = "TileBrick.jpg";
+            break;
+        }
+        default:
+            break;
+            
+    }
+    
+    string fullPath = path + newCanvasFile;
+    
+    bool fileload = canvas->m_texture->loadFromFile(fullPath);
+    if (!fileload)
+    {
+#if defined(_MSVC)
+        
+        fileload = canvas->m_texture->loadFromFile("../../../bin/resources/images/canvas.jpg");
+#endif
+    }
+    if (!fileload)
+    {
+        cout << "Error - Texture image failed to load correctly." << endl;
+        close();
+        return (-1);
+    }
+    
+    // create a copy of canvas so that we can clear page when requested
+    canvasOriginal = canvas->m_texture->m_image->copy();
+    
+    
+    // create normal map from texture data
+    cNormalMapPtr normalMap3 = cNormalMap::create();
+    normalMap3->createMap(canvas->m_texture);
+    canvas->m_normalMap = normalMap3;
+    normalMap3->setTextureUnit(GL_TEXTURE0_ARB);
+    
+    
 }
 
 
@@ -614,6 +690,23 @@ void keySelect(unsigned char key, int x, int y)
     {
         mirroredDisplay = !mirroredDisplay;
         camera->setMirrorVertical(mirroredDisplay);
+    }
+    
+    if (key == 'c')
+    {
+        // copy original image of canvas to texture
+        canvasOriginal->copyTo(canvas->m_texture->m_image);
+        
+        // update texture
+        canvas->m_texture->markForUpdate();
+        
+        // update console message
+        cout << "> Canvas has been erased.            \r";
+        
+    }
+    
+    if (key == 's') {
+        switchCanvas();
     }
 }
 

@@ -261,7 +261,7 @@ cVector3d WideBrushController::getNormalAtPosition(cVector3d pos) {
     g = rotAboutY * g;
     g = rotAboutX * g;
     g = cNormalize(g);
-    
+   // cout << "g is " << g << endl;
     return g;
 }
 
