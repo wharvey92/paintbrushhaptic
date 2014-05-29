@@ -45,6 +45,9 @@ class RealBrushController : public UtensilController
     cAlgorithmFingerProxy *fingerProxy;
     cVector3d box_center;
     
+    cShapeCylinder *cylinder;
+    cShapeBox *box;
+    
     
     cMesh *plane;
     bool gravityInward = false;
@@ -69,7 +72,7 @@ class RealBrushController : public UtensilController
     
     double timeStep = .001;
     
-    double springConstant = 5000;
+    double springConstant = 7000;
     double damperConstant = 10;
     
     double mass = .08;
@@ -83,6 +86,7 @@ public:
     RealBrushController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice> newHapticDevice);
     virtual void updateHaptics(double time, cVector3d position, double deviceForceScale);
     virtual void updateGraphics();
+    virtual void removeFromWorld();
     
 };
 

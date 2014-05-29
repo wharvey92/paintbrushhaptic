@@ -56,6 +56,7 @@ public:
     WideBrushController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice> newHapticDevice);
     virtual void updateHaptics(double time, cVector3d pos, double deviceForceScale);
     virtual void updateGraphics();
+    virtual void removeFromWorld();
     
 private:
     void moveNodesToCursor(const cVector3d pos, bool onlyFixed);

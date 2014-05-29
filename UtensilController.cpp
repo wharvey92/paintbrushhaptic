@@ -26,17 +26,25 @@ void UtensilController::drawAtPoint(const cVector3d texCoord, double force, doub
     
     // retrieve pixel information
     int px, py;
+    
     cVector3d newCoord;
     
     newCoord.x((texCoord.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
     newCoord.y((texCoord.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
     
+
     newCoord.z(0);
     canvas->m_texture->m_image->getPixelLocation(newCoord, px, py);
     
+    if (px == 0 || py == 0) {
+        cout << "px " << px << "py " << py << endl;
+        cout << "break " << endl;
+    }
+    
+    
     double K_INK = 10;
     double K_SIZE = 5;//30;
-    int BRUSH_SIZE_Y = 30;//30;
+    int BRUSH_SIZE_Y = 25;//30;
     int BRUSH_SIZE_X = BRUSH_SIZE_Y;
     double size = cClamp((K_SIZE * force), 0.0, (double)(BRUSH_SIZE_Y));
     
@@ -55,8 +63,6 @@ void UtensilController::drawAtPoint(const cVector3d texCoord, double force, doub
             double distance = sqrt(x*x + y*y);
             
             
-            
-            
             if (distance <= size)
             {
                 // get color at location
@@ -70,7 +76,7 @@ void UtensilController::drawAtPoint(const cVector3d texCoord, double force, doub
                 newColor.setR((1.0 - factor) * color.getR() + factor * paintColor.getR());
                 newColor.setG((1.0 - factor) * color.getG() + factor * paintColor.getG());
                 newColor.setB((1.0 - factor) * color.getB() + factor * paintColor.getB());
-                
+               // cout << "drawing at " << px + x << ", " <<py + y << endl;
                 
                 // assign new color to pixel
                 canvas->m_texture->m_image->setPixelColor(px+x, py+y, newColor);
@@ -156,4 +162,12 @@ void UtensilController::updateHaptics(double time, cVector3d pos, double deviceF
 
 void UtensilController::updateGraphics() {
     
+}
+
+void UtensilController::removeFromWorld() {
+    
+}
+
+void UtensilController::switchPaintCol(cColorb newColor) {
+    paintColor = newColor;
 }

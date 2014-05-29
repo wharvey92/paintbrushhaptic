@@ -10,6 +10,14 @@
 
 RealBrushController::RealBrushController(cWorld *newWorld, cMesh *newCanvas, string resourceRoot, shared_ptr<cGenericHapticDevice>newHapticDevice)  : UtensilController(newWorld, newCanvas, resourceRoot, newHapticDevice) {
     
+    
+    cylinder = new cShapeCylinder(0.1, 0.1, 1.4);
+    cylinder->rotateAboutGlobalAxisDeg(cVector3d(0,1,0), 90);
+    newWorld->addChild(cylinder);
+    
+    box = new cShapeBox(0.15, 1.05, 0.15);
+    newWorld->addChild(box);
+    
     naturalSpringLength = sphereRadius / 2.2;
     
     sphereCenter = cVector3d(-.05,0, 0);
@@ -88,20 +96,13 @@ cVector3d RealBrushController::calculateForces(cVector3d currSpherePos, cVector3
 void RealBrushController::updateHaptics(double time, cVector3d position, double deviceForceScale) {
     double d = earthRadius;
     
-    bool contact = false;
-    //Calculate forces on spheres
-    //        for (int a = 0; a < x_dimension; a++) {
-    //            for (int b = 0; b < y_dimension; b++) {
-    //                for (int i = 0; i < z_dimension; i++) {
-    //                    cVector3d dist = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i] - sphereCenter;
-    //                    cVector3d f(0,0,0);
-    //                    if (dist.length() < d ) {
-    //                        contact = true;
-    //                    }
-    //                }
-    //            }
-    //        }
     
+    cylinder->setLocalPos(position);
+    box->setLocalPos(position);
+    
+    bool contact = false;
+    
+    //Draw paint for spheres in contact
     double numInContact = 0;
     for (int a = 0; a < x_dimension; a++) {
         for (int b = 0; b < y_dimension; b++) {
@@ -110,8 +111,10 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
                 if (spherePos.x() < planePos.x()) {
                     contact = true;
                     numInContact++;
-                    cVector3d currForce = accArray[a][b][i] * mass;
-                     drawAtPoint(spherePos, currForce.length(), time, true, true);
+//                    cVector3d currForce = accArray[a][b][i] * mass;
+//                    cout << "Calling 1 " << endl;
+//                    cout << "drawing at pos "<< spherePos << endl;
+//                    drawAtPoint(spherePos, currForce.length(), time, true, true);
                 }
             }
         }
@@ -208,6 +211,8 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
                     cVector3d g = getNormalAtPosition(pos);
                     canvasForce += -k * (pos.x() - planePos.x()) * g;
 
+//                    cout << "Calling 2" << endl;
+//                    cout << "position is " << pos << endl;
                     
                      if (canvasForce.length() > 0) drawAtPoint(pos, canvasForce.length(), time, (b == 0), (b == y_dimension - 1));
                     
@@ -226,6 +231,8 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
 
     
     surroundingObject->updateBoundaryBox();
+    
+    
     
   //  force = accArray[x_dimension - 1][1][0] * mass;
 //    
@@ -282,4 +289,10 @@ cVector3d RealBrushController::getNormalAtPosition(cVector3d pos) {
 
 void RealBrushController::updateGraphics() {
     
+}
+
+void RealBrushController::removeFromWorld() {
+    world->removeChild(surroundingObject);
+    world->removeChild(box);
+    world->removeChild(cylinder);
 }

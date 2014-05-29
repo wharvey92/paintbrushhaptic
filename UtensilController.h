@@ -29,11 +29,14 @@ public:
     UtensilController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice>newHapticDevice);
     virtual void updateHaptics(double time, cVector3d pos, double deviceForceScale);
     virtual void updateGraphics();
+    virtual void removeFromWorld();
     void setCanvasSize(double size);
+    void switchPaintCol(cColorb newColor);
         
 protected:
     void drawBetweenPoints(const cVector3d texCoord, const cVector3d texCoord2, double force, double timeInterval) ;
     void drawAtPoint(const cVector3d texCoord, double force, double timeInterval, bool left, bool right);
+    
 };
 
 

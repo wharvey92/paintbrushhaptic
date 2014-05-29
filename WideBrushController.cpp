@@ -317,3 +317,10 @@ void WideBrushController::updateHaptics(double time, cVector3d pos, double devic
     
     hapticDevice->setForce(force);
 }
+
+void WideBrushController::removeFromWorld() {
+    world->removeChild(defWorld);
+    world->removeChild(cylinder);
+    world->removeChild(box);
+    
+}
