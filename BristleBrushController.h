@@ -18,7 +18,7 @@
 
 
 using namespace chai3d;
-using namespace std;
+using namespace std;   
 
 class BristleBrushController : public UtensilController
 {

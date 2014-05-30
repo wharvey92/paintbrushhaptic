@@ -397,7 +397,10 @@ int main(int argc, char* argv[])
 // create collision detector
 // canvas->createBruteForceCollisionDetector();
   canvas->createAABBCollisionDetector(.15);
-
+  
+    
+    
+    
 // add object to world
  world->addChild(canvas);
     
@@ -410,7 +413,7 @@ int main(int argc, char* argv[])
     
     // set graphic properties
     canvas->m_texture = cTexture2d::create();
-    bool fileload = canvas->m_texture->loadFromFile("/Users/diegocanales/Documents/testcs277/chai3d-3.0.0/bin/resources/images/canvas.jpg");
+    bool fileload = canvas->m_texture->loadFromFile("/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/canvas.jpg");
 
     if (!fileload)
     {
@@ -597,8 +600,8 @@ void switchScene() {
 
 void switchCanvas() {
     
-    // string path = "/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/";
-    string path = "/Users/diegocanales/Documents/testcs277/chai3d-3.0.0/bin/resources/images/";
+    string path = "/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/";
+    //string path = "/Users/diegocanales/Documents/testcs277/chai3d-3.0.0/bin/resources/images/";
     currCanvas++;
     
     
