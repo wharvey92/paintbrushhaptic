@@ -19,6 +19,79 @@ void UtensilController::setCanvasSize(double newSize) {
     canvasSize = newSize;
 }
 
+
+void UtensilController::thinDrawAtPoint(const cVector3d texCoord, double force, double timeInterval, bool left, bool right) {
+    if (canvasSize == 0) return;
+    
+    // return;
+    
+    // retrieve pixel information
+    int px, py;
+    
+    cVector3d newCoord;
+    
+    newCoord.x((texCoord.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
+    newCoord.y((texCoord.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
+    
+    
+    newCoord.z(0);
+    canvas->m_texture->m_image->getPixelLocation(newCoord, px, py);
+    
+    if (px == 0 || py == 0) {
+        cout << "px " << px << "py " << py << endl;
+        cout << "break " << endl;
+    }
+    
+    
+    double K_INK = 10;
+    double K_SIZE = 5;//30;
+    int BRUSH_SIZE_Y = 2;//30;
+    int BRUSH_SIZE_X = BRUSH_SIZE_Y;
+    double size = cClamp((K_SIZE * force), 0.0, (double)(BRUSH_SIZE_Y));
+    
+    if (!left && !right) {
+        //Middle
+        BRUSH_SIZE_X = 100;
+    }
+    
+    cColorb grayColor;
+    grayColor.setGrayDarkSlate();
+    
+    
+    //Set the new pixels
+    for (int x=-BRUSH_SIZE_X; x<BRUSH_SIZE_X; x++)
+    {
+        for (int y=-BRUSH_SIZE_Y; y<BRUSH_SIZE_Y; y++)
+        {
+            // compute new color percentage
+            double distance = sqrt(x*x + y*y);
+            
+            
+            if (distance <= size)
+            {
+                // get color at location
+                cColorb color, newColor;
+                canvas->m_texture->m_image->getPixelColor(px+x, py+y, color);
+                
+                // compute color factor based of pixel position and force interaction
+                double factor = cClamp(K_INK * timeInterval * cClamp(force, 0.0, 10.0) * cClamp(1 - distance/size, 0.0, 1.0), 0.0, 1.0);
+                
+                // compute new color
+                newColor.setR((1.0 - factor) * color.getR() + factor * grayColor.getR());
+                newColor.setG((1.0 - factor) * color.getG() + factor * grayColor.getG());
+                newColor.setB((1.0 - factor) * color.getB() + factor * grayColor.getB());
+                // cout << "drawing at " << px + x << ", " <<py + y << endl;
+                
+                // assign new color to pixel
+                canvas->m_texture->m_image->setPixelColor(px+x, py+y, newColor);
+            }
+        }
+    }
+}
+
+
+
+
 void UtensilController::drawAtPoint(const cVector3d texCoord, double force, double timeInterval, bool left, bool right) {
     if (canvasSize == 0) return;
     
