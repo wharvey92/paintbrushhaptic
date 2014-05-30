@@ -1,13 +1,13 @@
 //
-//  RealBrushController.h
+//  SingleBristleController.h
 //  GEL
 //
 //  Created by Diego Canales on 5/26/14.
 //
 //
 
-#ifndef __GEL__RealBrushController__
-#define __GEL__RealBrushController__
+#ifndef __GEL__SingleBristleController__
+#define __GEL__SingleBristleController__
 
 #include <iostream>
 
@@ -20,21 +20,21 @@
 using namespace chai3d;
 using namespace std;
 
-class RealBrushController : public UtensilController
+class SingleBristleController : public UtensilController
 {
     cPrecisionClock *clock0;
     
-    const int x_dimension = 6;
-    const int y_dimension = 3;
+    const int x_dimension = 4;
+    const int y_dimension = 1;
     const int z_dimension = 1;
     cMultiMesh *surroundingObject;
     double box_radius = .08;
     double startingDist;
     int scene = 0;
-    cMesh *spheresArray[6][3][1];
-    cVector3d accArray[6][3][1];
-    cVector3d velArray[6][3][1];
-    cVector3d originArray[6][3][1];
+    cMesh *spheresArray[4][1][1];
+    cVector3d accArray[4][1][1];
+    cVector3d velArray[4][1][1];
+    cVector3d originArray[4][1][1];
     
     cMesh* object0;
     
@@ -59,7 +59,7 @@ class RealBrushController : public UtensilController
     
     double paintBrushWeakness = 2;
     
-    double sphereRadius = .15;
+    double sphereRadius = .1;
     double lineHeight;
     double naturalSpringLength;
     
@@ -82,11 +82,11 @@ class RealBrushController : public UtensilController
     cVector3d calculateForces(cVector3d currSpherePos, cVector3d fixedSphere, double sprCons, cVector3d velocity, double sprLength, bool lengthOn);
     
 public:
-    RealBrushController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice> newHapticDevice);
+    SingleBristleController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice> newHapticDevice);
     virtual void updateHaptics(double time, cVector3d position, double deviceForceScale);
     virtual void updateGraphics();
     virtual void removeFromWorld();
     
 };
 
-#endif /* defined(__GEL__RealBrushController__) */
+#endif /* defined(__GEL__SingleBristleController__) */

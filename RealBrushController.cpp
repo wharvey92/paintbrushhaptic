@@ -15,14 +15,14 @@ RealBrushController::RealBrushController(cWorld *newWorld, cMesh *newCanvas, str
     cylinder->rotateAboutGlobalAxisDeg(cVector3d(0,1,0), 90);
     newWorld->addChild(cylinder);
     
-    box = new cShapeBox(0.15, 1.05, 0.15);
+    box = new cShapeBox(0.15, .45, 0.15);
     newWorld->addChild(box);
     
     naturalSpringLength = sphereRadius / 2.2;
     
     sphereCenter = cVector3d(-.05,0, 0);
 
-    
+    frictionOn = false;
     double distBetweenSpheres = sphereRadius;
     
     
@@ -96,11 +96,14 @@ cVector3d RealBrushController::calculateForces(cVector3d currSpherePos, cVector3
 void RealBrushController::updateHaptics(double time, cVector3d position, double deviceForceScale) {
     double d = earthRadius;
     
+    cVector3d positionOfBoxAndCylinder = cVector3d(position.x() - .13, position.y() - .1, position.z());
     
-    cylinder->setLocalPos(position);
-    box->setLocalPos(position);
+    cylinder->setLocalPos(positionOfBoxAndCylinder);
+    box->setLocalPos(positionOfBoxAndCylinder);
     
     bool contact = false;
+    
+        cVector3d force = cVector3d(0,0,0);
     
     //Draw paint for spheres in contact
     double numInContact = 0;
@@ -111,6 +114,18 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
                 if (spherePos.x() < planePos.x()) {
                     contact = true;
                     numInContact++;
+                  //  cout << "velocity " << velArray[a][b][i] << endl;
+                    if (frictionOn) {
+                        cVector3d tempVel = cVector3d(0, velArray[a][b][i].get(1), velArray[a][b][i].get(2));
+                        double distIn = spherePos.x() - planePos.x();
+                        if (tempVel.length() > .2) {
+                            force += (-abs(distIn) / 2) * tempVel;
+                            
+                        } else {
+                            force += -abs(distIn) * 2 * tempVel;
+                        }
+                    }
+                    
 //                    cVector3d currForce = accArray[a][b][i] * mass;
 //                    cout << "Calling 1 " << endl;
 //                    cout << "drawing at pos "<< spherePos << endl;
@@ -122,7 +137,7 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
     
     double k = 700;
     
-    cVector3d force = cVector3d(0,0,0);
+
     
     
     double massMultiplierCons = 1;
@@ -133,6 +148,7 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
                 cVector3d previousForce = cVector3d(0,0,0);
                 int surroundingSphereRadius = 1;
                 double sprLength = naturalSpringLength;
+                
                 //Calculate "grid" forces
                 for (int k = -surroundingSphereRadius; k < surroundingSphereRadius + 1; ++k) {
                     for (int l = -surroundingSphereRadius; l < surroundingSphereRadius + 1; ++l) {
@@ -220,7 +236,9 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
                     cVector3d acc = canvasForce / mass;
                     accArray[a][b][c] += acc;
                     //force += canvasForce * (double)(((x + 1) / 7.0) * 1.2);// * 1.0 / pow(x_dimension, paintBrushWeakness));
-                    force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 10 ;
+                    
+                    cVector3d tempVel = cVector3d(0, velArray[a][b][c].get(1), velArray[a][b][c].get(2));
+                    force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 3 ;
 
                 }
 
@@ -244,6 +262,21 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
 //    cVector3d f = calculateForces(p, mid, springConstant, v, naturalSpringLength * 4, true);
     
     // update texture
+    
+//    if (numInContact > 0) {
+//        if (frictionOn) {
+//            cVector3d tempVel;
+//            hapticDevice->getLinearVelocity(tempVel);
+//            cVector3d pos = spheresArray[0][0][0]->getLocalPos() + originArray[0][0][0];
+//            double distIn = pos.x() - planePos.x();
+//            cVector3d canvasForce = -k * (pos.x() - planePos.x()) * cVector3d(1, 0, 0);
+//            if (tempVel.length() > .03) {
+//                force += (-canvasForce.length() * cNormalize(tempVel) * .06);
+//            } else {
+//                force += (-canvasForce.length() * tempVel * .3);
+//            }
+//        }
+//    }
     canvas->m_texture->markForUpdate();
     
     //Integrate dynamics    
@@ -253,39 +286,6 @@ void RealBrushController::updateHaptics(double time, cVector3d position, double 
     hapticDevice->setForce(force);
 }
 
-cVector3d RealBrushController::getNormalAtPosition(cVector3d pos) {
-    int px, py;
-    cVector3d newCoord;
-    
-    newCoord.x((pos.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
-    newCoord.y((pos.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
-    
-    newCoord.z(0);
-    canvas->m_normalMap->m_image->getPixelLocation(newCoord, px, py);
-    
-    
-    cColorb grad;
-    canvas->m_normalMap->m_image->getPixelColor(px, py, grad);
-    
-    
-    cVector3d g = cVector3d((double)grad.getR(), (double)grad.getG(), (double)grad.getB());
-    //                    cout << "Gradient is " << cNormalize(g) << endl;
-    const double SCALE = (1.0/255.0);
-    double fX00 = SCALE * (grad.getR() - 128);
-    double fY00 =-SCALE * (grad.getG() - 128);
-    double fZ00 = SCALE * (grad.getB() - 128);
-    
-    double pi = 3.14159;
-    cMatrix3d rotAboutY = cMatrix3d(cos(pi / 2), 0, sin(pi / 2),0 , 1, 0, -sin(pi / 2), 0, cos(pi / 2));
-    cMatrix3d rotAboutX = cMatrix3d(1, 0, 0, 0 , cos(pi / 2), -sin(pi / 2), 0, sin(pi / 2), cos(pi / 2));
-
-    g.set(fX00, fY00, fZ00);
-    g = rotAboutY * g;
-    g = rotAboutX * g;
-    g = cNormalize(g);
-    
-    return g;
-}
 
 void RealBrushController::updateGraphics() {
     
@@ -296,3 +296,4 @@ void RealBrushController::removeFromWorld() {
     world->removeChild(box);
     world->removeChild(cylinder);
 }
+

@@ -1,27 +1,32 @@
 //
-//  MarkerController.cpp
+//  SingleBristleController.cpp
 //  GEL
 //
 //  Created by Diego Canales on 5/26/14.
 //
 //
 
-#include "MarkerController.h"
+#include "SingleBristleController.h"
 
-MarkerController::MarkerController(cWorld *newWorld, cMesh *newCanvas, string resourceRoot, shared_ptr<cGenericHapticDevice>newHapticDevice)  : UtensilController(newWorld, newCanvas, resourceRoot, newHapticDevice) {
+SingleBristleController::SingleBristleController(cWorld *newWorld, cMesh *newCanvas, string resourceRoot, shared_ptr<cGenericHapticDevice>newHapticDevice)  : UtensilController(newWorld, newCanvas, resourceRoot, newHapticDevice) {
     
+    
+    cylinder = new cShapeCylinder(0.1, 0.1, 1.4);
+    cylinder->rotateAboutGlobalAxisDeg(cVector3d(0,1,0), 90);
+    newWorld->addChild(cylinder);
+    
+
     naturalSpringLength = sphereRadius / 2.2;
     
     sphereCenter = cVector3d(-.05,0, 0);
-
     
-    cout << "ADDED" << endl;
     
-    double distBetweenSpheres = sphereRadius * 2;
+    double distBetweenSpheres = sphereRadius;
     
     
     startingYDist = distBetweenSpheres * y_dimension / 2 - distBetweenSpheres / 2;
     startingZDist = distBetweenSpheres * z_dimension / 2 - distBetweenSpheres / 2;
+    
     
     surroundingObject = new cMultiMesh();
     for (int i = 0; i < x_dimension; i++) {
@@ -30,13 +35,10 @@ MarkerController::MarkerController(cWorld *newWorld, cMesh *newCanvas, string re
                 cMesh *sphere = new cMesh();
                 cVector3d sphereOrigin = cVector3d(0 + i * distBetweenSpheres, -startingYDist + j * distBetweenSpheres, startingZDist - k * distBetweenSpheres );
                 cCreateSphere(sphere, sphereRadius, 32, 32, sphereOrigin);
+                
+                
                 spheresArray[i][j][k] = sphere;
                 // world->addChild(sphere);
-                if (i == 0) sphere->m_material->setBlack();
-                if (i == 1) sphere->m_material->setRed();
-                if (i == 2) sphere->m_material->setGreen();
-                if (i == 3) sphere->m_material->setBlue();
-                
                 velArray[i][j][k] = cVector3d(0,0,0);
                 accArray[i][j][k] = cVector3d(0,0,0);
                 originArray[i][j][k] = sphereOrigin;
@@ -48,7 +50,7 @@ MarkerController::MarkerController(cWorld *newWorld, cMesh *newCanvas, string re
     
     //  surroundingObject->setShowBoundaryBox(true);
     surroundingObject->m_material->setRed();
-    world->addChild(surroundingObject);
+    newWorld->addChild(surroundingObject);
     
     
     planePos = canvas->getLocalPos();
@@ -65,17 +67,16 @@ MarkerController::MarkerController(cWorld *newWorld, cMesh *newCanvas, string re
     
     
 }
-//
-//double dotProduct(cVector3d& vec1, cVector3d& vec2) {
-//    return vec1.get(0) * vec2.get(0) + vec1.get(1) * vec2.get(1) + vec1.get(2) * vec2.get(2);
-//}
 
-cVector3d MarkerController::calculateForces(cVector3d currSpherePos, cVector3d fixedSphere, double sprCons, cVector3d velocity) {
+cVector3d SingleBristleController::calculateForces(cVector3d currSpherePos, cVector3d fixedSphere, double sprCons, cVector3d velocity, double sprLength, bool lengthOn) {
     cVector3d totalForce(0,0,0);
     cVector3d vec_p0_q0 = currSpherePos - fixedSphere;
     cVector3d uVec_p0_q0 = vec_p0_q0 / vec_p0_q0.length();
     
-    double differenceInLength = vec_p0_q0.length() - naturalSpringLength;
+    double differenceInLength = vec_p0_q0.length() - sprLength;
+    if (lengthOn) {
+        if (differenceInLength < 0) return cVector3d(0,0,0);
+    }
     cVector3d gravDir = cVector3d(-1, 0, 0);
     
     cVector3d gravity = mass * 9.8 * gravDir;
@@ -83,33 +84,44 @@ cVector3d MarkerController::calculateForces(cVector3d currSpherePos, cVector3d f
     
     cVector3d force0 = -sprCons * differenceInLength * uVec_p0_q0 / 2;
     totalForce += force0;
-    
     double dotProd = velocity.get(0) * uVec_p0_q0.get(0) + velocity.get(1) * uVec_p0_q0.get(1) + velocity.get(2) * uVec_p0_q0.get(2);
-    // cVector3d damping = -damperConstant  * (dotProduct(velocity, uVec_p0_q0)) * uVec_p0_q0 / 2;
+    
     cVector3d damping = -damperConstant  * dotProd * uVec_p0_q0 / 2;
     totalForce += damping;
     return totalForce;
 }
 
-void MarkerController::updateHaptics(double time, cVector3d position, double deviceForceScale) {
+void SingleBristleController::updateHaptics(double time, cVector3d position, double deviceForceScale) {
     double d = earthRadius;
-    double k = 1000;
-    bool contact = false;
     
+    
+    cVector3d positionOfBoxAndCylinder = cVector3d(position.x(), position.y() , position.z());
+    
+    cylinder->setLocalPos(positionOfBoxAndCylinder);
+
+    
+    bool contact = false;
+    cVector3d force = cVector3d(0,0,0);
+    //Draw paint for spheres in contact
+    double numInContact = 0;
     for (int a = 0; a < x_dimension; a++) {
         for (int b = 0; b < y_dimension; b++) {
             for (int i = 0; i < z_dimension; i++) {
                 cVector3d spherePos = spheresArray[a][b][i]->getLocalPos() + originArray[a][b][i];
                 if (spherePos.x() < planePos.x()) {
                     contact = true;
+                    numInContact++;
+                    
                 }
             }
         }
     }
     
+    double k = 500;
     
-    cVector3d force = cVector3d(0,0,0);
-    double gridSpringSize = .002;
+    
+    
+    
     double massMultiplierCons = 1;
     for (int x = 0; x < x_dimension; ++x) {
         for (int y = 0; y < y_dimension; ++y) {
@@ -117,7 +129,7 @@ void MarkerController::updateHaptics(double time, cVector3d position, double dev
                 cVector3d currSpherePos = spheresArray[x][y][z]->getLocalPos() + originArray[x][y][z];
                 cVector3d previousForce = cVector3d(0,0,0);
                 int surroundingSphereRadius = 1;
-                
+                double sprLength = naturalSpringLength;
                 //Calculate "grid" forces
                 for (int k = -surroundingSphereRadius; k < surroundingSphereRadius + 1; ++k) {
                     for (int l = -surroundingSphereRadius; l < surroundingSphereRadius + 1; ++l) {
@@ -126,15 +138,29 @@ void MarkerController::updateHaptics(double time, cVector3d position, double dev
                             //These "continue" statements ensure that we don't calculate diagonal springs, that we don't calculate a spring from a ball to itself, and that we don't exceed the bounds in the z direction
                             if (k == 0 && l == 0 && m == 0) continue;
                             if (k * l * m != 0) continue;
+                            if (x + k < 0 || x + k > x_dimension - 1) continue;
                             cVector3d fixedSphere;
                             double sprCons = springConstant;
+                            bool len = false;
                             if (k == 0) {
                                 //Grid forces
-                                cVector3d pos = position + cVector3d(0, -startingYDist + y * sphereRadius, startingZDist - z * sphereRadius);
+                                
+                                cVector3d pos = position + cVector3d(0, -startingYDist + y * sphereRadius * (x_dimension - x) / 4, startingZDist - z * sphereRadius);
                                 fixedSphere = cVector3d(pos.x() - .002 * double(k) - sphereRadius * (x_dimension - x + 1), pos.y() + .002 * (double)l, pos.z()  + .002 * (double)m);
+                                // sprLength = .004;
+                                sprCons /= (1 * (x_dimension - x) * (x_dimension - x));
+                                // bool len = true;
+                                
                             }
+                            else {
+                                //Spring forces between spheres
+                                
+                                fixedSphere = spheresArray[x + k][y][z]->getLocalPos() + originArray[x + k][y][z];
+                            }
+                            
                             //Apply spring forces
-                            previousForce += calculateForces(currSpherePos, fixedSphere, sprCons, velArray[x][y][z]);
+                            // cout << "x is  " << x << " and spr cons is " << sprCons << endl;
+                            previousForce += calculateForces(currSpherePos, fixedSphere, sprCons, velArray[x][y][z], sprLength, len);
                             
                         }
                     }
@@ -150,23 +176,12 @@ void MarkerController::updateHaptics(double time, cVector3d position, double dev
                 accArray[x][y][z] = cVector3d(0,0,0);
                 cVector3d newPos = currSpherePos + velArray[x][y][z] * timeStep;
                 spheresArray[x][y][z]->setLocalPos(newPos - originArray[x][y][z]);
-//                
-//                cVector3d pos = spheresArray[x][y][z]->getLocalPos() + originArray[x][y][z];
-//                
-//                //Sphere force
-//                cVector3d canvasForce(0,0,0);
-//                if (pos.x() < planePos.x()) {
-//                    // cout << "this pos " << pos.x() << endl;
-//                    canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1, 0,0);
-//                    cVector3d acc = canvasForce / mass;
-//                    accArray[x][y][z] += acc;
-//                    force += canvasForce * ((double)x * 1.0 / pow(x_dimension, paintBrushWeakness));
-//                }
+                
             }
         }
     }
     
-    
+    //Add forces of spheres to cursor
     for (int a = 0; a < x_dimension; a++) {
         for (int b = 0; b < y_dimension; b++) {
             for (int c = 0; c < z_dimension; c++) {
@@ -175,37 +190,55 @@ void MarkerController::updateHaptics(double time, cVector3d position, double dev
                 cVector3d canvasForce(0,0,0);
                 if (pos.x() < planePos.x()) {
                     
-                    
+                    //compute force relative to texture normal
                     cVector3d g = getNormalAtPosition(pos);
-                    //  g.set(g.x(), g.y() - .6, g.z());
                     canvasForce += -k * (pos.x() - planePos.x()) * g;
                     
+                    
+                    
+                    //Paint if necessary
                     if (canvasForce.length() > 0) drawAtPoint(pos, canvasForce.length(), time, (b == 0), (b == y_dimension - 1));
                     
                     
-                    //  canvasForce += -k * (pos.x() - planePos.x()) * cVector3d(1,0,0);
-                    
                     cVector3d acc = canvasForce / mass;
                     accArray[a][b][c] += acc;
-                    //   if (a > 3) continue;
-                    //force += canvasForce * (double)(((x + 1) / 7.0) * 1.2);// * 1.0 / pow(x_dimension, paintBrushWeakness));
-                    //if (a < 6) continue;
-                    force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 10 ;
-                    //force += canvasForce * ((double)(x + 60) * 1.0 / pow(x_dimension, paintBrushWeakness));
-                    
-                    // cout << "force is " << force << endl;
+                    force += canvasForce * ((double)(a + 1) * 1.0 / pow(x_dimension, paintBrushWeakness * 1.6)) * 5;
                 }
                 
             }
         }
     }
-
+    
+    if (numInContact > 0) {
+        if (frictionOn) {
+            cVector3d tempVel;
+            hapticDevice->getLinearVelocity(tempVel);
+            cVector3d pos = spheresArray[0][0][0]->getLocalPos() + originArray[0][0][0];
+            double distIn = pos.x() - planePos.x();
+            cVector3d canvasForce = -k * (pos.x() - planePos.x()) * cVector3d(1, 0, 0);
+            if (tempVel.length() > .03) {
+                force += (-canvasForce.length() * cNormalize(tempVel) * .02);
+            } else {
+                force += (-canvasForce.length() * tempVel * .1);
+            }
+        }
+    }
+    
+    // update texture
     canvas->m_texture->markForUpdate();
+    
+    //Integrate dynamics
+    //Send force back to haptic device
     force.mul(deviceForceScale);
     
     hapticDevice->setForce(force);
 }
 
-void MarkerController::updateGraphics() {
+void SingleBristleController::updateGraphics() {
     
+}
+
+void SingleBristleController::removeFromWorld() {
+    world->removeChild(surroundingObject);
+    world->removeChild(cylinder);
 }

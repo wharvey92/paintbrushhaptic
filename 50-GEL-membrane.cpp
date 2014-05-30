@@ -54,6 +54,7 @@
 #include "RealBrushController.h"
 #include "SoftMarkerController.h"
 #include "SmallBrushController.h"
+#include "SingleBristleController.h"
 
 
 //------------------------------------------------------------------------------
@@ -95,7 +96,7 @@ int currPaint;
 // DECLARED VARIABLES
 //---------------------------------------------------------------------------
 
-double canvasSize = 2.3;
+double canvasSize = 8;
 UtensilController *utensilController;
 
 // a world that contains all objects of the virtual environment
@@ -139,7 +140,7 @@ bool simulationRunning = false;
 // flag to indicate if the haptic simulation has terminated
 bool simulationFinished = true;
 
-const int NUMBER_OF_SCENES = 2;
+const int NUMBER_OF_SCENES = 3;
 const int NUMBER_OF_PAINTS = 5;
 
 // frequency counter to measure the simulation haptic rate
@@ -295,7 +296,7 @@ int main(int argc, char* argv[])
     world->addChild(camera);
 
     // position and orient the camera
-    camera->set( cVector3d (1.5, 0.0, 1.0),    // camera position (eye)
+    camera->set( cVector3d (3, 0.0, 0),    // camera position (eye)
                  cVector3d (0.0, 0.0, 0.0),    // lookat position (target)
                  cVector3d (0.0, 0.0, 1.0));   // direction of the (up) vector
 
@@ -345,7 +346,7 @@ int main(int argc, char* argv[])
     hapticDevice->open();
 
     // desired workspace radius of the cursor
-    cursorWorkspaceRadius = 0.7;
+    cursorWorkspaceRadius = 1.8;
 
     // read the scale factor between the physical workspace of the haptic
     // device and the virtual workspace defined for the tool
@@ -559,6 +560,16 @@ void switchScene() {
             utensilController = newController;
             utensilController->setCanvasSize(canvasSize);
             setPaintColor(currPaint);
+            utensilController->setBristleWidth(15);
+            cout << "At scene 1 " << endl;
+            break;
+        }
+        case 2: {
+            SingleBristleController *newController = new SingleBristleController(world, canvas, resourceRoot, hapticDevice);
+            utensilController = newController;
+            utensilController->setCanvasSize(canvasSize);
+            setPaintColor(currPaint);
+            utensilController->setBristleWidth(6);
             cout << "At scene 1 " << endl;
             break;
         }
@@ -579,6 +590,20 @@ void keySelect(unsigned char key, int x, int y)
 
         // exit application
         exit(0);
+    }
+    
+    if (key == 'y') {
+        utensilController->turnFrictionOn();
+    }
+    
+    if (key == 'n') {
+        utensilController->turnFrictionOff();
+    }
+    
+    //Bristle width options
+    if (key == '1' || key == '2' || key == '3' || key == '4' || key == '5' || key == '6' || key == '7' || key == '8' || key == '9') {
+        int width = key - '0';
+        utensilController->setBristleWidth(3 * width);
     }
     
     if (key == ' ') {

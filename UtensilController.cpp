@@ -44,7 +44,7 @@ void UtensilController::drawAtPoint(const cVector3d texCoord, double force, doub
     
     double K_INK = 10;
     double K_SIZE = 5;//30;
-    int BRUSH_SIZE_Y = 25;//30;
+    int BRUSH_SIZE_Y = bristleSize;
     int BRUSH_SIZE_X = BRUSH_SIZE_Y;
     double size = cClamp((K_SIZE * force), 0.0, (double)(BRUSH_SIZE_Y));
     
@@ -170,4 +170,53 @@ void UtensilController::removeFromWorld() {
 
 void UtensilController::switchPaintCol(cColorb newColor) {
     paintColor = newColor;
+}
+
+void UtensilController::turnFrictionOn(){
+    cout << "friction on " << endl;
+    frictionOn = true;
+}
+void UtensilController::turnFrictionOff(){
+    cout << "friction on " << endl;
+
+    frictionOn = false;
+}
+
+void UtensilController::setBristleWidth(int width) {
+    cout << "Setting to " << width << endl;
+    bristleSize = width;
+}
+
+cVector3d UtensilController::getNormalAtPosition(cVector3d pos) {
+        int px, py;
+        cVector3d newCoord;
+        
+        newCoord.x((pos.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
+        newCoord.y((pos.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
+        
+        newCoord.z(0);
+        canvas->m_normalMap->m_image->getPixelLocation(newCoord, px, py);
+        
+        
+        cColorb grad;
+        canvas->m_normalMap->m_image->getPixelColor(px, py, grad);
+        
+        
+        cVector3d g = cVector3d((double)grad.getR(), (double)grad.getG(), (double)grad.getB());
+        //                    cout << "Gradient is " << cNormalize(g) << endl;
+        const double SCALE = (1.0/255.0);
+        double fX00 = SCALE * (grad.getR() - 128);
+        double fY00 =-SCALE * (grad.getG() - 128);
+        double fZ00 = SCALE * (grad.getB() - 128);
+        
+        double pi = 3.14159;
+        cMatrix3d rotAboutY = cMatrix3d(cos(pi / 2), 0, sin(pi / 2),0 , 1, 0, -sin(pi / 2), 0, cos(pi / 2));
+        cMatrix3d rotAboutX = cMatrix3d(1, 0, 0, 0 , cos(pi / 2), -sin(pi / 2), 0, sin(pi / 2), cos(pi / 2));
+        
+        g.set(fX00, fY00, fZ00);
+        g = rotAboutY * g;
+        g = rotAboutX * g;
+        g = cNormalize(g);
+        
+        return g;
 }

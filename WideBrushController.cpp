@@ -231,39 +231,7 @@ void WideBrushController::updateGraphics() {
     defWorld->updateSkins(true);
 }
 
-cVector3d WideBrushController::getNormalAtPosition(cVector3d pos) {
-    int px, py;
-    cVector3d newCoord;
-    
-    newCoord.x((pos.y() - canvas->getLocalPos().y() + canvasSize/2)/canvasSize);
-    newCoord.y((pos.z() - canvas->getLocalPos().z() + canvasSize/2)/canvasSize);
-    
-    newCoord.z(0);
-    canvas->m_normalMap->m_image->getPixelLocation(newCoord, px, py);
-    
-    
-    cColorb grad;
-    canvas->m_normalMap->m_image->getPixelColor(px, py, grad);
-    
-    
-    cVector3d g = cVector3d((double)grad.getR(), (double)grad.getG(), (double)grad.getB());
-    //                    cout << "Gradient is " << cNormalize(g) << endl;
-    const double SCALE = (1.0/255.0);
-    double fX00 = SCALE * (grad.getR() - 128);
-    double fY00 =-SCALE * (grad.getG() - 128);
-    double fZ00 = SCALE * (grad.getB() - 128);
-    
-    double pi = 3.14159;
-    cMatrix3d rotAboutY = cMatrix3d(cos(pi / 2), 0, sin(pi / 2),0 , 1, 0, -sin(pi / 2), 0, cos(pi / 2));
-    cMatrix3d rotAboutX = cMatrix3d(1, 0, 0, 0 , cos(pi / 2), -sin(pi / 2), 0, sin(pi / 2), cos(pi / 2));
-    
-    g.set(fX00, fY00, fZ00);
-    g = rotAboutY * g;
-    g = rotAboutX * g;
-    g = cNormalize(g);
-    
-    return g;
-}
+
 
 
 void WideBrushController::updateHaptics(double time, cVector3d pos, double deviceForceScale) {
@@ -271,7 +239,7 @@ void WideBrushController::updateHaptics(double time, cVector3d pos, double devic
     defWorld->clearExternalForces();
     
     moveNodesToCursor(pos, true);
-    
+    int numInContact = 0;
     
     cVector3d force(0.0, 0.0, 0.0);
     for (int y=0; y<numYNodes; y++)
@@ -289,7 +257,7 @@ void WideBrushController::updateHaptics(double time, cVector3d pos, double devic
             //if (x == numXNodes/2+1 && f.length() > 0) {
             
             if (f.length() > 0) {
-                
+                numInContact++;
                 if (y != 0) {
                     
                     
@@ -311,6 +279,22 @@ void WideBrushController::updateHaptics(double time, cVector3d pos, double devic
     
     //Integrate dynamics
     defWorld->updateDynamics(time);
+    
+    if (numInContact > 0) {
+        if (frictionOn) {
+            cVector3d tempVel;
+            hapticDevice->getLinearVelocity(tempVel);
+            cVector3d pos = nodes[0][0]->m_pos;
+            double distIn = pos.x() - canvas->getLocalPos().x();
+            cVector3d canvasForce = -100 * (pos.x() - canvas->getLocalPos().x()) * cVector3d(1, 0, 0);
+            if (tempVel.length() > .03) {
+                force += (-canvasForce.length() * cNormalize(tempVel) * .07);
+            } else {
+                force += (-canvasForce.length() * tempVel * .4);
+            }
+        }
+    }
+
     
     //Send force back to haptic device
     force.mul(deviceForceScale);

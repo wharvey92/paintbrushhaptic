@@ -24,6 +24,8 @@ protected: cMesh* canvas;
 protected: cWorld *world;
 protected: cColorb paintColor;
 protected: double canvasSize;
+protected: bool frictionOn;
+protected: int bristleSize = 30;
     
 public:
     UtensilController(cWorld *newWorld, cMesh *newCanvas, string newResourceRoot, shared_ptr<cGenericHapticDevice>newHapticDevice);
@@ -32,8 +34,12 @@ public:
     virtual void removeFromWorld();
     void setCanvasSize(double size);
     void switchPaintCol(cColorb newColor);
+    void turnFrictionOn();
+    void turnFrictionOff();
+    void setBristleWidth(int width);
         
 protected:
+    cVector3d getNormalAtPosition(cVector3d pos);
     void drawBetweenPoints(const cVector3d texCoord, const cVector3d texCoord2, double force, double timeInterval) ;
     void drawAtPoint(const cVector3d texCoord, double force, double timeInterval, bool left, bool right);
     
