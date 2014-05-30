@@ -180,5 +180,6 @@ void PencilController::updateHaptics(double time, cVector3d pos, double deviceFo
 }
 
 void PencilController::removeFromWorld() {
+    world->removeChild(tip);
     world->removeChild(cylinder);
 }
