@@ -143,7 +143,7 @@ bool simulationRunning = false;
 // flag to indicate if the haptic simulation has terminated
 bool simulationFinished = true;
 
-const int NUMBER_OF_SCENES = 3;
+const int NUMBER_OF_SCENES = 4;
 const int NUMBER_OF_PAINTS = 5;
 
 // frequency counter to measure the simulation haptic rate
@@ -410,7 +410,7 @@ int main(int argc, char* argv[])
     
     // set graphic properties
     canvas->m_texture = cTexture2d::create();
-    bool fileload = canvas->m_texture->loadFromFile("/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/canvas.jpg");
+    bool fileload = canvas->m_texture->loadFromFile("/Users/diegocanales/Documents/testcs277/chai3d-3.0.0/bin/resources/images/canvas.jpg");
 
     if (!fileload)
     {
@@ -582,7 +582,7 @@ void switchScene() {
             cout << "At scene 1 " << endl;
             break;
         }
-        case 2: {
+        case 3: {
             PencilController *newController = new PencilController(world, canvas, resourceRoot, hapticDevice);
             utensilController = newController;
             utensilController->setCanvasSize(canvasSize);
@@ -597,7 +597,8 @@ void switchScene() {
 
 void switchCanvas() {
     
-    string path = "/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/";
+    // string path = "/Users/willharvey/Desktop/Spring 2014 Classes/CS277/chai3d-3.0.0/bin/resources/images/";
+    string path = "/Users/diegocanales/Documents/testcs277/chai3d-3.0.0/bin/resources/images/";
     currCanvas++;
     
     

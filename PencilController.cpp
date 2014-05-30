@@ -122,6 +122,17 @@ void PencilController::updateHaptics(double time, cVector3d pos, double deviceFo
     
     if (f.length() > 0) {
         thinDrawAtPoint(cylPos, f.length(), time, false, false);
+        double xDist = abs(cylPos.x() - canvas->getLocalPos().x());
+            if (frictionOn) {
+                cVector3d tempVel;
+                hapticDevice->getLinearVelocity(tempVel);
+                cVector3d canvasForce = -700 * xDist * cVector3d(1, 0, 0);
+                if (tempVel.length() > .02) {
+                    f += (-canvasForce.length() * cNormalize(tempVel) * .02);
+                } else {
+                    f += (-canvasForce.length() * tempVel * .1);
+                }
+            }
     }
     
     canvas->m_texture->markForUpdate();
@@ -177,6 +188,8 @@ void PencilController::updateHaptics(double time, cVector3d pos, double deviceFo
 //    force.mul(deviceForceScale);
 //    
 //    hapticDevice->setForce(force);
+    
+    
 }
 
 void PencilController::removeFromWorld() {
